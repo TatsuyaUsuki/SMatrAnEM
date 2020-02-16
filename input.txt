@@ -1,0 +1,69 @@
+#-- 20180711 Read by xi2u.c -----------------------------------------------------------------------
+# inverse of angular wavenumber 'inv_k0' has to be defined. It is used as a unit of length.
+	inv_k0 = 0.1um
+#
+#-- 20180711 Read by xi2u.c -----------------------------------------------------------------------
+#
+	MESH: j=0 L_0= 6	L_s= 2.0um	K_0= 0  min du/dxi = 60. nm
+	Mesh: j=1 L_1= 12	L_s= 4.0um	K_1= 0  min du/dxi = 60. nm
+	mesh: j=2 L_2= 20	L_s= 1 micron	K_2= 0  min du/dxi = 50. nm
+#
+# min du/dxi is not used when K_j <= 0, and it can be omitted.
+#
+#-- 20180716 Read by xi2u.c, mkCurv.c, u2r2x.c, outer.c, StrMap.c, PMLcalc ------------------------
+# Fundamental parameters for 3D-mesh (xi_0, xi_1, xi_2) -> (u_0, u_1, u_2)
+	xi2u: Output_file = ./non_uniform.dat
+#
+#-- 20180711 Read by mkCurv.c ---------------------------------------------------------------------
+	F_b: type= const_cos  halfsum = 0.0 Pi
+	F_w: type= cos2_sin   halfsum = 1.00
+# fuction type: const_even, const_odd, const_cos, const_sin, cos_cos, cos_sin (=sin_cos), cos2_cos (sin_cos2)
+#
+#-- 20180711 Read by mkCurv.c, u2r2x.c ------------------------------------------------------------
+# Curvature parameters kappa_b and kappa_w for (u_0, u_2)
+	kappa: file name= ./kappa.dat
+#
+#-- 20180711 Read by u2r2x.c, outer.c, YeeSlice.c, BindData.c -------------------------------------
+# (u_0, u_2) -> (r_0, r_2) -> (x_0, x_2)
+	u2r2x: file name= ./urx.dat
+#
+#-- 20180711 Read by outer.c, StrMap.c(cell_num only), YeeSlice.c(OutputFile only), BindData.c(OutputFile only) ----------------
+	outer: cell_num = 10,	OutputFile = ./outer.dat
+#
+#-- 20180711 Read by StrMap.c ---------------------------------------------------------------------
+	StrMap: InputFile = ./3d_str.txt,	RecursiveDepth = 6,	Region = all,
+# Region = all / outer
+#
+#-- 20180719 Read by StrMap.c, Med3D.c, YeeSlice.c, BindData.c, Mcalc.c, Scalc.c, PMLcalc.c, CorrFactor.c, FDTD.c ----
+	Prefix = ./Data/joint
+#
+#-- 20180711 Read by Med3D.c ----------------------------------------------------------------------
+	MediumPara: wavelength= 1.55um,	temperature= 25 degC,	medium table = ./trans_med.txt
+#
+#-- 20190827 Read by PMLcalc.c ----------------------------------------------------------------------
+	PML: file name= ./PML_str.txt
+#
+#-- 20180723 Read by YeeSlice.c -------------------------------------------------------------------
+	Slice0: l_0 =	5, s_0 =	0, file =	./SliceData/Slice0,
+	Slice0: l_0 =	5, s_0 =	1, file =	./SliceData/Slice0b,
+	Slice1: l_1 =	5, s_1 =	0, file =	./SliceData/Slice1,
+	Slice1: l_1 =	5, s_1 =	1, file =	./SliceData/Slice1b,
+	Slice2: b+l+t=	26, s_2 =	1, file =	./SliceData/SliceT
+	slice2: b+l+t=	3, s_2 =	1, file =	./SliceData/SliceB
+	SLICE2: b+l+t=	15, s_2 =	0, file =	./SliceData/Slice2
+#
+#-- 20180928 Read by Mcalc.c, Scalc.c, B2 only for FDTD.c --------------------------------------
+	BoundaryCondition: B0 = 1, B1=1, B2 = 1
+# Bj = -1, 0 or 1 for j = 0,1
+#
+#-- 20180927 Read by Mcalc.c, Scalc.c, FDTD.c --------------------------------------------------
+	ModeP: Xi output = y, Internal precision = D, 1st = B7, 2nd = T1
+# D (L) means "double" ("long double").
+#
+#-- 20181015 Read by Scalc.c -------------------------------------------------------------------
+	Smatrix: both-ways = n, LAPACK solver = y
+#
+#-- 20190912 Read by FDTD.c -------------------------------------------------------------------
+	FDTD: ramp-period = 2, cw-period = 1, stop-period = 8, incident-point = B8, incident-mode = +1, Dt_factor = 1., stable_factor = 2.
+# stop-period >= cw-period + 2*pamp-period ; monitor1 < incident-point < monitor2
+#

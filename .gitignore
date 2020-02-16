@@ -1,0 +1,21 @@
+*
+#directory
+!*/
+#C99 and header
+!*.c
+!*.h
+#control and setting files
+!.gitignore
+!*.sh
+!makefile
+!*.plt
+!*.bat
+!*.txt
+#tex files
+!*.sty
+!*.tex
+!*.bib
+!*.bbl
+!*.eps
+!*.pdf
+

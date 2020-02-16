@@ -1,0 +1,30 @@
+#Medium no., name/index/epsilon
+#
+#Background
+	0 name Vacuum //0 means no. for default.
+#Clad layer
+#	1 name SiO2
+	1 name Vacuum
+#Waveguide layer
+#	2 name Si
+	2 name Vacuum
+#doped layer
+#	3 name d-Si 0. 1.e19 //p+ doped region
+#	3 epsilon real= -10.0 imag= 2.
+	3 name W
+End
+4 name Si
+#4 name d-Si 0. 1.e19 //p+ doped region
+5 name Si
+#5 name d-Si 1.e18 0. //n- doped region
+6 name d-Si 0. 1.e18 //p- doped region
+
+Metal layer
+7 name TiN
+8 name Al
+
+Optional media
+9 index real= 1.5 imag= 0.
+10 epsilon real= 3.6 imag= 0.
+11 epsilon+mu real= 1.0 imag= 0.1 real= 1.0 imag= 0.2
+

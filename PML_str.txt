@@ -1,0 +1,18 @@
+#orientation: x, y, z
+#"squareRef" means square of reflection coefficient. 
+#"power" is positive integer. 
+begin
+orientation = z, start = B4, end = B0
+squareRef = 1.e-7, power = 3
+end
+#
+begin
+orientation = z, start = T5, end = T9
+squareRef = 1.e-7, power = 3
+end
+#
+#begin
+orientation = z, start = 4, end = 14
+squareRef = 1.e-1, power = 3
+end
+

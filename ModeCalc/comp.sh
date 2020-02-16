@@ -1,0 +1,6 @@
+#!/bin/sh
+#gcc -Wall -O3 *.c -std=c11 -llapack -lblas -lgfortran -lm -o ../Mcalc 2> error_gcc.txt && echo 'compiled Mcalc by gcc'
+#gcc -Wall -O2 *.c -std=c11 -llapack -lblas -lgfortran -lm -o ../Mcalc 2> error_gcc.txt && echo 'compiled Mcalc by gcc'
+#gcc -Wall -O2 *.c -std=gnu11 -llapack -lblas -lm -o ../Mcalc 2> error_gcc.txt && echo 'compiled Mcalc by gcc'
+gcc -Wall -O2 *.c -std=c11 -llapack -lblas -lm -o ../Mcalc 2> error_gcc.txt && echo 'compiled Mcalc by gcc'
+

@@ -1,0 +1,148 @@
+//media no. 1: SiO2, 2: Si, 3: n-Si, 4: p-Si
+//Clad
+begin
+media no.= 1
+shape block A= 5.0 micron B= 5.0 um C= 5 mm Theta_x= 0. deg Theta_y= 0. rad Theta_z = 0. deg
+origin x= 0.0 micron y= -4.0 micron z= 0.0 um
+end
+
+//Waveguide
+begin
+media no.= 2
+shape block Ax= 0.2 um By= 0.1 um Cz= 100. um Theta_x= 0. deg Theta_y= 0. rad Theta_z = 0. deg
+origin x= 0.0 um y= 0.0 um z= 0.0 nm
+end
+
+//Metal mirror
+begin
+media no.= 3
+shape block Ax= 10. um By= 10. um Cz= 200. nm Theta_x= 0. deg Theta_y= 0. rad Theta_z = 0. deg
+origin x= 0.0 um y= 0.0 um z= 0.0 nm
+end
+
+
+//Grating
+//begin
+//media no.= 2
+//shape block Ax= 3.0 um By= 0.11 um Cz= 22.5 nm Theta_x= 0. deg Theta_y= 0. rad Theta_z = 0. deg
+//origin x= 0.0 um y= 0.0 um z= 100. nm
+//array  x= 0.0 um y= 0.0 um z= 284 nm start= 0 end= 0
+//end
+
+//Grating n+ doped
+//begin
+//media no.= 3
+//shape block Ax= 0.80 um By= 0.2 um Cz= 1. micron Theta_x= 0. deg Theta_y= 0. rad Theta_z = 0. deg
+//origin x= 0.0 um y= 0.0 um z= 0.0 nm
+//origin x= -1.0 um y= 0.0 um z= 100. nm
+//array  x= 2.0 um y= 0.0 um z= 0.0 nm start= 0 end= 0
+//end
+
+//Grating p+ doped
+//begin
+//media no.= 4
+//shape block Ax= 0.80 um By= 0.11 um Cz= 22.5 nm Theta_x= 0. deg Theta_y= 0. rad Theta_z = 0. deg
+//origin x= 1.0 um y= 0.0 um z= 100. nm
+//array  x= 2.0 um y= 0.0 um z= 0.0 nm start= 0 end= 0
+//end
+
+//TiN-layer
+//begin
+//material name TiN
+//shape block Ax= 0.5 um By= 3 nm Cz= 13.5 micron Theta_x= 0. deg Theta_y= 0. rad Theta_z = 0. deg
+//origin x= -1.5 um y= 0.11 um z= 14 micron
+//array  x= 3.0 um y= 0.0 um z= 0 nm start= 0 end= 1
+//end
+//Al-layer
+//begin
+//material name Al
+//shape block Ax= 0.5 um By= 200 nm Cz= 13.5 micron Theta_x= 0. deg Theta_y= 0. rad Theta_z = 0. deg
+//origin x= -1.5 um y= 0.31 um z= 3 micron
+//array  x= 3.0 um y= 0.0 um z= 0 nm start= 0 end= 1
+//end
+//material name SiO2
+//material index real= 1.5 imag= 0.
+//material epsilon real= 3.6 imag= 0.
+//shape block A= 5.0 micron B= 5.0 um C= 1.0 mm Theta_x= 0. deg Theta_y= 0. rad Theta_z = 0. deg
+//shape cylinder Ax= 6.0 micron By= 4.0 um Cz= 1.0 mm Theta_x= 0. deg Theta_y= 0. rad Theta_z = 0. deg
+//shape prism Ax= 6.0 micron By= 4.0 um Cz= 1.0 mm Theta_x= 0. deg Theta_y= 0. rad Theta_z = 0. deg
+//shape pyramid Ax= 6.0 micron By= 4.0 um Cz= 1.0 mm Theta_x= 0. deg Theta_y= 0. rad Theta_z = 0. deg
+//shape spheroid Ax= 6.0 micron By= 4.0 um Cz= 1.0 mm Theta_x= 0. deg Theta_y= 0. rad Theta_z = 0. deg
+
+//////////////////////////////  block, cylinder, spheroid  //////////////////////////////
+//                                                                                     //
+//                                                                                     //
+//                       (-A,-B,+C) --                    -- (-A,+B,+C)                //
+//                                /|                       /|                          //
+//                                                                                     //
+//                                                                                     //
+//                                                                                     //
+//                                                                                     //
+//                                                                                     //
+//                           /                        /                                //
+//                (+A,-B,+C) --                    -- (+A,+B,+C)                       //
+//                          |                        |                                 //
+//                                                                                     //
+//                                         |/                                          //
+//                                       -----(0,0,0)                                  //
+//                                        /|                                           //
+//                                                                                     //
+//                                 |                        |                          //
+//                       (-A,-B,-C) --                    -- (-A,+B,-C)                //
+//                                /                        /                           //
+//                                                                                     //
+//                                                                                     //
+//                                                                                     //
+//                                                                                     //
+//                                                                                     //
+//                          |/                       |/                                //
+//                (+A,-B,-C) --                    -- (+A,+B,-C)                       //
+//                                                                                     //
+//                                                                                     //
+/////////////////////////////////////////////////////////////////////////////////////////
+//
+/////////////////////////////////////   prism   /////////////////////////////////////////
+//                                                                                     //
+//                                                                                     //
+//                                 (0,0,+C) --           -- (0,+B,+C)                  //
+//                                        /|           *   |                           //
+//                                                 *                                   //
+//                                             *                                       //
+//                                      /  *                                           //
+//                           (+A,0,+C) *                                               //
+//                                     |                                               //
+//                                         |/                                          //
+//                                       -----(0,0,0)                                  //
+//                                        /|                                           //
+//                                                                                     //
+//                                                                                     //
+//                                                                                     //
+//                                                                                     //
+//                                                                                     //
+//                                         |               |                           //
+//                                 (0,0,-C) --           -- (0,+B,-C)                  //
+//                                        /            *                               //
+//                                                 *                                   //
+//                                             *                                       //
+//                                     |/  *                                           //
+//                           (+A,0,-C) *                                               //
+//                                                                                     //
+//                                                                                     //
+/////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////   pyramid   ////////////////////////////////////////
+//                                                                                     //
+//                                                                                     //
+//                              (0,0,+C)                                               //
+//                                      *                                              //
+//                                      |   *                                          //
+//                                     *|        *                                     //
+//                                      |             *                                //
+//                                    *  ------------------* (0,+B,0)                  //
+//                                     /(0,0,0)       *                                //
+//                                   */         *                                      //
+//                                   /    *                                            //
+//                         (+A,0,0) *                                                  //
+//                                                                                     //
+//                                                                                     //
+/////////////////////////////////////////////////////////////////////////////////////////
