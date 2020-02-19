@@ -1,5 +1,5 @@
 SMatrAnEM has been released for testing on various systems.
-Sorry, I will not accept any pull request, since SMatrAnEM could change significantly by the end of 2020.
+Sorry, any pull request will not be accepted, since SMatrAnEM could change significantly by the end of 2020.
 Comments or suggestions are welcome.
 +++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -8,7 +8,7 @@ Scattering Matrix Analyzer (SMatrAn) can generate the scattering matrix (S-matri
 In particular, SMatrAnEM focuses on electromagnetic wave scattering.
 
 The generated S-matrix maintains higher quarity, because SMatrAnEM uses both numerical mesher of orthogonal curvilinear coordinates and stable S-matrix-solver with accurate mode-solver.
-See 'Formulation.pdf'(submitted to https://arxiv.org/) that defines details of formulae used in SMatrAnEM.
+See 'https://arxiv.org/abs/2002.06574' to understand formulae in SMatrAnEM that is independently developed by Tatsuya Usuki.
 SMatrAnEM also involves FDTD solver for analyzing larger structure.
 
 This directory contains 4 shell scripts, 13 executable files (after compiling codes), 13+4 directories, 4 input files, 'LICENSE.txt', and this 'README.txt'.
