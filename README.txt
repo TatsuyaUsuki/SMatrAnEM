@@ -1,6 +1,7 @@
 SMatrAnEM has been released for testing on various systems.
 Sorry, any pull request will not be accepted, since SMatrAnEM could change significantly by the end of 2020.
 Comments or suggestions are welcome.
+https://www.smatran.org/index.html
 +++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 This 'README.txt' explains SMatrAnEM shortly.
