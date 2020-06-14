@@ -3,8 +3,8 @@
 #include "constant.h"
 int input_N_table(FILE *fp_i2);
 void input_file2(FILE *fp_i2, const int N_table, const double env_para[2], double complex ep_omega[N_table], double complex mu_omega[N_table]);
-void output_file(char **argv, const char Yee[], const int N_table, const double complex ep_omega[N_table], const double complex mu_omega[N_table], const char MediumTable[], const double env_para[2]);
-int input_file1(FILE *fp_i1, char Yee[], char MediumTable[], double env_para[2]);
+void output_file(char **argv, const char Yee[], const int N_table, const double complex ep_omega[N_table], const double complex mu_omega[N_table], const char MediumTable[], const double env_para[3]);
+int input_file1(FILE *fp_i1, char Yee[], char MediumTable[], double env_para[3]);
 double complex epsi(const double Lambda, const double Temperature, char material[], const double charge_dens_cm3[2]);
 //  End of Med3D.h
 //======================================================================
@@ -20,8 +20,8 @@ int main(int argc, char **argv)
 		fprintf(stderr,"error: number of files \n");
 		exit(1);
 	}else if(strncmp(argv[1], "-v", 2) == 0 || strcmp(argv[1], "--version") == 0 ) {
-		fprintf(stderr,"The '%s' creates permititivity in each Yee's cell.\n", argv[0]);
-		fprintf(stderr,"Version 20.05.23 is compiled at %s on %s.\n C-version   : %ld\n", __TIME__, __DATE__, __STDC_VERSION__);
+		fprintf(stderr,"The '%s' creates permititivity averaging in quadruple Yee's cell.\n", argv[0]);
+		fprintf(stderr,"Version 20.06.13 is compiled at %s on %s.\n C-version   : %ld\n", __TIME__, __DATE__, __STDC_VERSION__);
 		fprintf(stderr," Source code : '%s'\n Author      : Tatsuya Usuki\n URL         : http://www.smatran.org\n", __FILE__);
 		fprintf(stderr," References  : 'Wave scattering in frequency domain' as 'Formulation.pdf' on May 20, 2018;\n");
 		fprintf(stderr,"                 Section 8.2 in 'Formulation for SMatrAn' as 'manual.pdf' at Jan 16, 2017.\n");
@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 	}
 	fprintf(stderr,"The 1st input file: %s\n",argv[1]);
 	char Yee[BUFSIZE], MediumTable[BUFSIZE];
-	double env_para[2];// env_para[0]: wavelength, env_para[1]: temperature
+	double env_para[4];// env_para[0]: wavelength, env_para[1]: temperature, env_para[2], env_para[3]: Deformation factor 1,2 for Med3D2ac
 	if(input_file1(fp_i1, Yee, MediumTable, env_para) != 0) { 
 		fprintf(stderr,"input_file1 error!\n");
 		exit(1);
@@ -87,7 +87,7 @@ double ScaleUnit(char x[]);// unit variation: km, m, cm, mm, micron, um, nm, deg
 double TempUnit(double x, char s[]);
 void rm_space( char *A );
 void rm_comma( char *A );
-int input_file1(FILE *fp_i1, char Yee[], char MediumTable[], double env_para[2])
+int input_file1(FILE *fp_i1, char Yee[], char MediumTable[], double env_para[4])
 {
 	char buf[BUFSIZE];	// buffer for fgets
 	int j_count = 0;
@@ -98,7 +98,7 @@ int input_file1(FILE *fp_i1, char Yee[], char MediumTable[], double env_para[2])
 		if(strncmp(buf, "Prefix", 6) == 0 && sscanf(buf,"%*[^=] %*[=] %s", Yee) == 1){//Prefix = Yee
 			j_count++;// 1
 		}else if(strncmp(buf, "MediumPara", 6) == 0
-		&& sscanf(buf,"%*[^=] %*[=] %lf %s %*[^=] %*[=] %lf %s %*[^=] %*[=] %s", &env_para[0], A, &R_dummy, B, MediumTable) == 5){
+		&& sscanf(buf,"%*[^=] %*[=] %lf %s %*[^=] %*[=] %lf %s %*[^=] %*[=] %s %*[^=] %*[=] %lf %*[^=] %*[=] %lf", &env_para[0], A, &R_dummy, B, MediumTable, &env_para[2], &env_para[3]) == 7){
 			env_para[0] *= ScaleUnit(A);
 			env_para[1] = TempUnit(R_dummy, B);
 			j_count++;// 2
@@ -145,7 +145,7 @@ void rm_comma(char *A)
 }
 //======================================================================
 //  output_file ---- input_data_file0, input_data_file                  
-//                                       Last updated on Oct 24, 2014.  
+//                                       Last updated on Jun 13, 2020.  
 //======================================================================
 void input_data_file0(const char Yee[], int L[5]);
 void input_data_file(const char Yee[], const int n_w, const int L[5], 
@@ -153,7 +153,9 @@ void input_data_file(const char Yee[], const int n_w, const int L[5],
 			double complex mu_cell[8*L[0]*L[1]], char input_name[]);
 void get_file_info(const char input_name[], char xi_file[], char str_file[], double head_u2[4]);
 void matdata_file(const char f_prefix[], const char add_name[], const int Ltot, const int Lout, const int istep, char data_name[]);
-void output_file(char **argv, const char Yee[], const int N_table, const double complex ep_omega[N_table], const double complex mu_omega[N_table], const char MediumTable[], const double env_para[2])
+void muep_cell2cell(double complex cell[], const double complex mu_cell[], const int L_u, const int L_v, const int x_shift, const int y_shift, const int z_shift, const int L[2]);
+double complex media_ave(const double complex cell[], const double gamma[]);
+void output_file(char **argv, const char Yee[], const int N_table, const double complex ep_omega[N_table], const double complex mu_omega[N_table], const char MediumTable[], const double env_para[4])
 {
 // This 'output_file' creates a set of 3D files for optical media.
 // Yee[]       : an output file name (char).
@@ -164,117 +166,173 @@ void output_file(char **argv, const char Yee[], const int N_table, const double 
 		exit(1);
 	}
 	fprintf(stderr,"From a data-file, L = %d, M = %d, N_bottom + N + N_top = %d, N_med = %d, CellNum = %d\n", L[0], L[1], L[2], L[3], L[4]);
+	double complex *ep_cell = calloc(4*8*L[0]*L[1],sizeof(double complex));//revised on 20180725
+	double complex *mu_cell = calloc(4*8*L[0]*L[1]*4,sizeof(double complex));//revised on 20180725
 //	double complex ep_cell1[8*L[0]*L[1]], mu_cell1[8*L[0]*L[1]];
-	double complex *ep_cell1 = calloc(8*L[0]*L[1],sizeof(double complex));//revised on 20180725
-	double complex *mu_cell1 = calloc(8*L[0]*L[1],sizeof(double complex));//revised on 20180725
+	double complex *ep_cell1 = &ep_cell[2*8*L[0]*L[1]];//revised on 20180725
+	double complex *mu_cell1 = &mu_cell[2*8*L[0]*L[1]];//revised on 20180725
 	if(ep_cell1 == NULL || mu_cell1 == NULL){fprintf(stderr,"ep_cell1 and/or mu_cell1 can not be secured!\n");	exit(EXIT_FAILURE);}
 	char input_name[BUFSIZE];//revised on 20180718
 	input_data_file(Yee, 0, L, ep_omega, mu_omega, ep_cell1, mu_cell1, input_name);
 
 //	double complex ep_cell0[4*L[0]*L[1]], mu_cell0[4*L[0]*L[1]];
-	double complex *ep_cell0 = calloc(4*L[0]*L[1],sizeof(double complex));//revised on 20180725
-	double complex *mu_cell0 = calloc(4*L[0]*L[1],sizeof(double complex));//revised on 20180725
-	for(int l_v = 0 ; l_v < L[1] ; l_v++){
-		for(int l_u = 0 ; l_u < L[0] ; l_u++){
-			for(int k_v = 0 ; k_v < 2 ; k_v++){
-				for(int k_u = 0 ; k_u < 2 ; k_u++){
-					ep_cell0[k_u+2*k_v + 4*l_u + 4*L[0]*l_v] = ep_cell1[k_u+2*k_v + 4*0 + 8*l_u + 8*L[0]*l_v];
-					mu_cell0[k_u+2*k_v + 4*l_u + 4*L[0]*l_v] = mu_cell1[k_u+2*k_v + 4*0 + 8*l_u + 8*L[0]*l_v];
-				}
-			}
-		}
+	double complex *ep_cell0 = &ep_cell[1*8*L[0]*L[1]];//revised on 20200520
+	double complex *mu_cell0 = &mu_cell[1*8*L[0]*L[1]];//revised on 20200520
+	double complex *ep_celln = &ep_cell[0*8*L[0]*L[1]];;//revised on 20200520
+	double complex *mu_celln = &mu_cell[0*8*L[0]*L[1]];//revised on 20200520
+	for(int ll = 0 ; ll < 8*L[0]*L[1] ; ll++){
+		ep_cell0[ll] = ep_cell1[ll];
+		mu_cell0[ll] = mu_cell1[ll];
+		ep_celln[ll] = ep_cell1[ll];
+		mu_celln[ll] = mu_cell1[ll];
 	}
+	double complex *ep_cell2 = &ep_cell[3*8*L[0]*L[1]];//revised on 20200520
+	double complex *mu_cell2 = &mu_cell[3*8*L[0]*L[1]];//revised on 20200520
 	for(int jw0 = 0 ; jw0 < L[2] ; jw0++) { 
 		char output_name[BUFSIZE];
 		matdata_file(Yee, "_Med", L[2], L[4], jw0, output_name);
-		/*if(0 <= jw0 && jw0 < L[4]){	snprintf(output_name,sizeof(output_name),"%s_MedB%d.dat", Yee, jw0);}//revised on 20180723 https://www.ipa.go.jp/security/awareness/vendor/programmingv1/b06_02.html
-		else if(L[4] <= jw0 && jw0 < L[2] - L[4]){	snprintf(output_name,sizeof(output_name),"%s_Med%d.dat", Yee, jw0-L[4]);}//revised on 20180712
-		else if(L[2] - L[4] <= jw0 && jw0 < L[2]){	snprintf(output_name,sizeof(output_name),"%s_MedT%d.dat", Yee, jw0-(L[2]-L[4]));}//revised on 20180712
-		else{fprintf(stderr,"Error in output_file!\n");	exit(1);}//revised on 20180712 */
 		FILE *fp_o;
 		fp_o = fopen(output_name,"w");
 		if (fp_o == NULL){	fprintf(stderr,"open error for %s\n", output_name);	exit(1);}
 		time_t timer_f = time(0);
 		fprintf(fp_o,"# Created on %s", ctime(&timer_f));
 		fprintf(fp_o,"# exec = %s : `%s' was compiled at %s on %s by C-version:%ld\n", argv[0], __FILE__, __TIME__, __DATE__, __STDC_VERSION__);
-		input_data_file(Yee, jw0, L, ep_omega, mu_omega, ep_cell1, mu_cell1, input_name);//revised on 20180718
+		if(jw0 + 1 < L[2]){
+			input_data_file(Yee, jw0+1, L, ep_omega, mu_omega, ep_cell2, mu_cell2, input_name);
+		}
 		{
 			char xi_file[BUFSIZE], str_file[BUFSIZE]; double head_u2[4];//revised on 20180801
 			get_file_info(input_name, xi_file, str_file, head_u2);//revised on 20180718
 			fprintf(fp_o,"# info = %s, u-xi = %s, str. = %s, s-map = %s, med. = %s, this = %s\n", 
 				argv[1], xi_file, str_file, input_name, MediumTable, output_name);//revised on 20180718
-			fprintf(fp_o,"# wavelength [m] = %.20e, temp. [K] = %.20e\n", env_para[0], env_para[1]);
+			fprintf(fp_o,"# wavelength [m] = %.20e, temp. [K] = %.20e, deformation factor 1 = %.20e, deformation factor 2 = %.20e\n", env_para[0], env_para[1], env_para[2], env_para[3]);
 			fprintf(fp_o,"# k_0 * u_2  = %.20e ; %.20e ; %.20e, k_0[m^-1] = %.20e\n", head_u2[0], head_u2[1], head_u2[2], head_u2[3]);//revised on 20180801
 		}
 		fprintf(fp_o,"# l < %d, m < %d, n + 2*outer < %d, media_no < %d, outer = %d,\n", L[0], L[1], L[2], L[3], L[4]);
 		fprintf(fp_o,"# l m 0 mu_u mu_v ep_w\n");
 		fprintf(fp_o,"# l m 1 ep_v ep_u mu_w\n");
 		for(int l_v = 0 ; l_v < L[1] ; l_v++){
-			int l_vm = (l_v + L[1] - 1)%L[1];
 			for(int l_u = 0 ; l_u < L[0] ; l_u++){
-				int l_um = (l_u + L[0] - 1)%L[0];
+				double complex cell[6*6*6];
+				//ep_v: x_shift = 2, y_shift = 1, z_shift = 2
+				//ep_u: x_shift = 1, y_shift = 2, z_shift = 2
+				//mu_w: x_shift = 1, y_shift = 1, z_shift = 2
+// 0, 1, 2, 3, 4, 5, 6, 7 for mu_cell, ep_cell
+// 0, 0, 1, 1, 2, 2, 3, 3 for above/2
+// n, n, 0, 0, 1, 1, 2, 2 for mu_cellJ, ep_cellJ
+//-2,-2,-1,-1, 0, 0,+1,+1 for shift of L_u, L_v
+//
+//    0, 1,{2, 3},4, 5 for ls_u,v,w of cell
+//    0, 0,{1, 1},2, 2 for ls_u,v,w/2
 				{
 					fprintf(fp_o,"%d %d 0 ", l_u, l_v);
-					double complex mu_u, mu_v, ep_w;
-					mu_u  = mu_cell1[0+2*0+4*0+8*l_u +8*L[0]*l_v ] + mu_cell1[1+2*0+4*0+8*l_u +8*L[0]*l_v ];
-					mu_u += mu_cell1[0+2*1+4*0+8*l_u +8*L[0]*l_vm] + mu_cell1[1+2*1+4*0+8*l_u +8*L[0]*l_vm];
-					mu_u += mu_cell0[0+2*0    +4*l_u +4*L[0]*l_v ] + mu_cell0[1+2*0    +4*l_u +4*L[0]*l_v ];
-					mu_u += mu_cell0[0+2*1    +4*l_u +4*L[0]*l_vm] + mu_cell0[1+2*1    +4*l_u +4*L[0]*l_vm];
-					mu_u *= 0.125;
-					
-					mu_v  = mu_cell1[0+2*0+4*0+8*l_u +8*L[0]*l_v ] + mu_cell1[0+2*1+4*0+8*l_u +8*L[0]*l_v ];
-					mu_v += mu_cell1[1+2*0+4*0+8*l_um+8*L[0]*l_v ] + mu_cell1[1+2*1+4*0+8*l_um+8*L[0]*l_v ];
-					mu_v += mu_cell0[0+2*0    +4*l_u +4*L[0]*l_v ] + mu_cell0[0+2*1    +4*l_u +4*L[0]*l_v ];
-					mu_v += mu_cell0[1+2*0    +4*l_um+4*L[0]*l_v ] + mu_cell0[1+2*1    +4*l_um+4*L[0]*l_v ];
-					mu_v *= 0.125;
-					
-					ep_w  = ep_cell1[0+2*0+4*0+8*l_u +8*L[0]*l_v ] + ep_cell1[0+2*1+4*0+8*l_u +8*L[0]*l_v ];
-					ep_w += ep_cell1[1+2*0+4*0+8*l_u +8*L[0]*l_v ] + ep_cell1[1+2*1+4*0+8*l_u +8*L[0]*l_v ];
-					ep_w += ep_cell0[0+2*0    +4*l_u +4*L[0]*l_v ] + ep_cell0[0+2*1    +4*l_u +4*L[0]*l_v ];
-					ep_w += ep_cell0[1+2*0    +4*l_u +4*L[0]*l_v ] + ep_cell0[1+2*1    +4*l_u +4*L[0]*l_v ];
-					ep_w *= 0.125;
+					muep_cell2cell(cell, mu_cell, l_u, l_v, 2, 1, 1, L);//mu_u: x_shift = 2, y_shift = 1, z_shift = 1
+					double complex mu_u = media_ave(cell, &env_para[2]);
+//
+					muep_cell2cell(cell, mu_cell, l_u, l_v, 1, 2, 1, L);//mu_v: x_shift = 1, y_shift = 2, z_shift = 1
+					double complex mu_v = media_ave(cell, &env_para[2]);
+//
+					muep_cell2cell(cell, ep_cell, l_u, l_v, 2, 2, 1, L);//ep_w: x_shift = 2, y_shift = 2, z_shift = 1
+					double complex ep_w = media_ave(cell, &env_para[2]);
+//
 					fprintf(fp_o,"%.20E %.20E %.20E %.20E %.20E %.20E\n",
 						creal(mu_u),cimag(mu_v),creal(mu_v),cimag(mu_v),creal(ep_w),cimag(ep_w));
 				}
 				
-				
 				{
 					fprintf(fp_o,"%d %d 1 ", l_u, l_v);
-					double complex ep_v, ep_u, mu_w;
-					ep_v  = ep_cell1[0+2*0+4*0+8*l_u +8*L[0]*l_v ] + ep_cell1[1+2*0+4*0+8*l_u +8*L[0]*l_v ];
-					ep_v += ep_cell1[0+2*0+4*1+8*l_u +8*L[0]*l_v ] + ep_cell1[1+2*0+4*1+8*l_u +8*L[0]*l_v ];
-					ep_v += ep_cell1[0+2*1+4*0+8*l_u +8*L[0]*l_vm] + ep_cell1[1+2*1+4*0+8*l_u +8*L[0]*l_vm];
-					ep_v += ep_cell1[0+2*1+4*1+8*l_u +8*L[0]*l_vm] + ep_cell1[1+2*1+4*1+8*l_u +8*L[0]*l_vm];
-					ep_v *= 0.125;
-				
-					ep_u  = ep_cell1[0+2*0+4*0+8*l_u +8*L[0]*l_v ] + ep_cell1[0+2*1+4*0+8*l_u +8*L[0]*l_v ];
-					ep_u += ep_cell1[0+2*0+4*1+8*l_u +8*L[0]*l_v ] + ep_cell1[0+2*1+4*1+8*l_u +8*L[0]*l_v ];
-					ep_u += ep_cell1[1+2*0+4*0+8*l_um+8*L[0]*l_v ] + ep_cell1[1+2*1+4*0+8*l_um+8*L[0]*l_v ];
-					ep_u += ep_cell1[1+2*0+4*1+8*l_um+8*L[0]*l_v ] + ep_cell1[1+2*1+4*1+8*l_um+8*L[0]*l_v ];
-					ep_u *= 0.125;
-				
-					mu_w  = mu_cell1[0+2*0+4*0+8*l_u +8*L[0]*l_v ] + mu_cell1[1+2*0+4*0+8*l_um+8*L[0]*l_v ];
-					mu_w += mu_cell1[0+2*1+4*0+8*l_u +8*L[0]*l_vm] + mu_cell1[1+2*1+4*0+8*l_um+8*L[0]*l_vm];
-					mu_w += mu_cell1[0+2*0+4*1+8*l_u +8*L[0]*l_v ] + mu_cell1[1+2*0+4*1+8*l_um+8*L[0]*l_v ];
-					mu_w += mu_cell1[0+2*1+4*1+8*l_u +8*L[0]*l_vm] + mu_cell1[1+2*1+4*1+8*l_um+8*L[0]*l_vm];
-					mu_w *= 0.125;
-					fprintf(fp_o,"%.20E %.20E %.20E %.20E %.20E %.20E\n",creal(ep_v),cimag(ep_v),creal(ep_u),cimag(ep_u),creal(mu_w),cimag(mu_w));
+					muep_cell2cell(cell, ep_cell, l_u, l_v, 2, 1, 2, L);//ep_v: x_shift = 2, y_shift = 1, z_shift = 2
+					double complex ep_v = media_ave(cell, &env_para[2]);
+//
+					muep_cell2cell(cell, ep_cell, l_u, l_v, 1, 2, 2, L);//ep_u: x_shift = 1, y_shift = 2, z_shift = 2
+					double complex ep_u = media_ave(cell, &env_para[2]);
+//
+					muep_cell2cell(cell, mu_cell, l_u, l_v, 1, 1, 2, L);//mu_w: x_shift = 1, y_shift = 1, z_shift = 2
+					double complex mu_w = media_ave(cell, &env_para[2]);
+//
+					fprintf(fp_o,"%.20E %.20E %.20E %.20E %.20E %.20E\n",
+						creal(ep_v),cimag(ep_v),creal(ep_u),cimag(ep_u),creal(mu_w),cimag(mu_w));
 				}
 			}
 		}
 		if(fclose(fp_o) != 0) {	fprintf(stderr,"fclose error after writing a data file!\n");	exit(1);}
-		for(int l_v = 0 ; l_v < L[1] ; l_v++){
-			for(int l_u = 0 ; l_u < L[0] ; l_u++){
-				for(int k_v = 0 ; k_v < 2 ; k_v++){
-					for(int k_u = 0 ; k_u < 2 ; k_u++){
-						ep_cell0[k_u+2*k_v + 4*l_u + 4*L[0]*l_v] = ep_cell1[k_u+2*k_v + 4*1 + 8*l_u + 8*L[0]*l_v];
-						mu_cell0[k_u+2*k_v + 4*l_u + 4*L[0]*l_v] = mu_cell1[k_u+2*k_v + 4*1 + 8*l_u + 8*L[0]*l_v];
-					}
-				}
+		for(int ll = 0 ; ll < 8*L[0]*L[1] ; ll++){
+			for(int ls = 0 ; ls < 3 ; ls++){
+				ep_cell[ll + 8*L[0]*L[1]*ls] = ep_cell[ll + 8*L[0]*L[1]*(ls+1)];
+				mu_cell[ll + 8*L[0]*L[1]*ls] = mu_cell[ll + 8*L[0]*L[1]*(ls+1)];
+			}
+//			ep_celln[ll] = ep_cell0[ll]; mu_celln[ll] = mu_cell0[ll]; ep_cell0[ll] = ep_cell1[ll]; mu_cell0[ll] = mu_cell1[ll]; ep_cell1[ll] = ep_cell2[ll]; mu_cell1[ll] = mu_cell2[ll];
+		}
+	}
+	SAFEFREE(ep_cell);	SAFEFREE(mu_cell);
+}
+double complex media_ave(const double complex cell[], const double DeformationFactor[2])
+{
+	double complex mu_u  =  0.;
+	for(int ls_w = 2 ; ls_w <= 3 ; ls_w++){
+		for(int ls_v = 2 ; ls_v <= 3 ; ls_v++){
+			for(int ls_u = 2 ; ls_u <= 3 ; ls_u++){
+				mu_u += cell[ls_u+6*ls_v+36*ls_w];
 			}
 		}
 	}
-	SAFEFREE(ep_cell1);	SAFEFREE(mu_cell1);	SAFEFREE(ep_cell0);	SAFEFREE(mu_cell0);
+	double complex mu_u1  =  0.;
+	double complex mu_u2  =  0.;
+	for(int ls_w = 2 ; ls_w <= 3 ; ls_w++){
+		for(int ls_v = 2 ; ls_v <= 3 ; ls_v++){
+			mu_u1 += cell[1+6*ls_v+36*ls_w] + cell[4+6*ls_v+36*ls_w];
+			mu_u2 += cell[0+6*ls_v+36*ls_w] + cell[5+6*ls_v+36*ls_w];
+		}
+	}
+	for(int ls_w = 2 ; ls_w <= 3 ; ls_w++){
+		for(int ls_u = 2 ; ls_u <= 3 ; ls_u++){
+			mu_u1 += cell[ls_u+6*1+36*ls_w] + cell[ls_u+6*4+36*ls_w];
+			mu_u2 += cell[ls_u+6*0+36*ls_w] + cell[ls_u+6*5+36*ls_w];
+		}
+	}
+	for(int ls_v = 2 ; ls_v <= 3 ; ls_v++){
+		for(int ls_u = 2 ; ls_u <= 3 ; ls_u++){
+			mu_u1 += cell[ls_u+6*ls_v+36*1]+cell[ls_u+6*ls_v+36*4];
+			mu_u2 += cell[ls_u+6*ls_v+36*0]+cell[ls_u+6*ls_v+36*5];
+		}
+	}
+//	mu_u += mu_u1 + DeformationFactor*(mu_u1 - mu_u2);
+//	mu_u += mu_u1 + DeformationFactor*(mu_u*3 - mu_u2);
+	mu_u += DeformationFactor[0]*mu_u1 + DeformationFactor[1]*mu_u2;
+	mu_u *= (0.125/(1.+ 3.*(DeformationFactor[0] + DeformationFactor[1])));
+	return(mu_u);
+}
+// 0, 1, 2, 3, 4, 5, 6, 7 for mu_cell, ep_cell
+// 0, 0, 1, 1, 2, 2, 3, 3 for above/2
+// n, n, 0, 0, 1, 1, 2, 2 for mu_cellJ, ep_cellJ
+//-2,-2,-1,-1, 0, 0,+1,+1 for shift of L_u, L_v
+//
+//    0, 1,{2, 3},4, 5 for ls_u,v,w of cell
+//    0, 0,{1, 1},2, 2 for ls_u,v,w/2
+//
+//mu_u: x_shift = 2, y_shift = 1, z_shift = 1
+//mu_v: x_shift = 1, y_shift = 2, z_shift = 1
+//ep_w: x_shift = 2, y_shift = 2, z_shift = 1
+//ep_v: x_shift = 2, y_shift = 1, z_shift = 2
+//ep_u: x_shift = 1, y_shift = 2, z_shift = 2
+//mu_w: x_shift = 1, y_shift = 1, z_shift = 2
+void muep_cell2cell(double complex cell[], const double complex mu_cell[], const int L_u, const int L_v, const int x_shift, const int y_shift, const int z_shift, const int L[2])
+{
+	for(int ls_w = 0 ; ls_w < 6 ; ls_w++){
+		int l_w, s_w;
+		{int lshift_w = ls_w + z_shift;	l_w = lshift_w/2;	s_w = lshift_w%2;}
+		for(int ls_v = 0 ; ls_v < 6 ; ls_v++){
+			int l_v, s_v;
+			{int lshift_v = ls_v + y_shift;	l_v = lshift_v/2;	s_v = lshift_v%2;}
+			int Ll_v = (L_v + l_v - 2 + 2*L[1])%L[1];
+			for(int ls_u = 0 ; ls_u < 6 ; ls_u++){
+				int l_u, s_u;
+				{int lshift_u = ls_u + x_shift;	l_u = lshift_u/2;	s_u = lshift_u%2;}
+				int Ll_u = (L_u + l_u - 2 + 2*L[0])%L[0];
+				cell[ls_u+6*ls_v+36*ls_w] = mu_cell[s_u+2*s_v+4*s_w + 8*Ll_u + 8*L[0]*Ll_v + 8*L[0]*L[1]*l_w ];
+			}
+		}
+	}
 }
 //======================================================================
 //  matdata_file                     Last updated on Aug 29, 2019   

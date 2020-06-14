@@ -4,9 +4,9 @@
 #
 #-- 20180711 Read by xi2u.c -----------------------------------------------------------------------
 #
-	MESH: j=0 L_0= 6	L_s= 2.0um	K_0= 0  min du/dxi = 60. nm
-	Mesh: j=1 L_1= 12	L_s= 4.0um	K_1= 0  min du/dxi = 60. nm
-	mesh: j=2 L_2= 20	L_s= 1 micron	K_2= 0  min du/dxi = 50. nm
+	MESH: j=0 L_0= 30	L_s= 2.0um	K_0= 1  min du/dxi = 20.0 nm
+	Mesh: j=1 L_1= 30	L_s= 2.0um	K_1= 1  min du/dxi = 20.0 nm
+	mesh: j=2 L_2= 20	L_s= 1.0 micron	K_2= 0  min du/dxi = 50.0 nm
 #
 # min du/dxi is not used when K_j <= 0, and it can be omitted.
 #
@@ -15,8 +15,8 @@
 	xi2u: Output_file = ./non_uniform.dat
 #
 #-- 20180711 Read by mkCurv.c ---------------------------------------------------------------------
-	F_b: type= const_cos  halfsum = 0.0 Pi
-	F_w: type= cos2_sin   halfsum = 1.00
+	F_b: type= const_even  halfsum = 0.0 Pi
+	F_w: type= const_even   halfsum = 1.00
 # fuction type: const_even, const_odd, const_cos, const_sin, cos_cos, cos_sin (=sin_cos), cos2_cos (sin_cos2)
 #
 #-- 20180711 Read by mkCurv.c, u2r2x.c ------------------------------------------------------------
@@ -28,36 +28,36 @@
 	u2r2x: file name= ./urx.dat
 #
 #-- 20180711 Read by outer.c, StrMap.c(cell_num only), YeeSlice.c(OutputFile only), BindData.c(OutputFile only) ----------------
-	outer: cell_num = 10,	OutputFile = ./outer.dat
+	outer: cell_num = 5,	OutputFile = ./outer.dat
 #
 #-- 20180711 Read by StrMap.c ---------------------------------------------------------------------
-	StrMap: InputFile = ./3d_str.txt,	RecursiveDepth = 6,	Region = all,
+	StrMap: InputFile = ./3d_str.txt,	RecursiveDepth = 8,	Region = all,
 # Region = all / outer
 #
 #-- 20180719 Read by StrMap.c, Med3D.c, YeeSlice.c, BindData.c, Mcalc.c, Scalc.c, PMLcalc.c, CorrFactor.c, FDTD.c ----
 	Prefix = ./Data/joint
 #
-#-- 20180711 Read by Med3D.c ----------------------------------------------------------------------
-	MediumPara: wavelength= 1.55um,	temperature= 25 degC,	medium table = ./trans_med.txt
+#-- 20180711 Read by Med3D.c -----DF1,DF2 for Med3D2a------------------------------------------------
+	MediumPara: wavelength= 1.30 um,	temperature= 25 degC, medium table = ./trans_med.txt , DF1 = 0.6, DF2 = -0.2
 #
 #-- 20190827 Read by PMLcalc.c ----------------------------------------------------------------------
 	PML: file name= ./PML_str.txt
 #
 #-- 20180723 Read by YeeSlice.c -------------------------------------------------------------------
-	Slice0: l_0 =	5, s_0 =	0, file =	./SliceData/Slice0,
-	Slice0: l_0 =	5, s_0 =	1, file =	./SliceData/Slice0b,
-	Slice1: l_1 =	5, s_1 =	0, file =	./SliceData/Slice1,
-	Slice1: l_1 =	5, s_1 =	1, file =	./SliceData/Slice1b,
-	Slice2: b+l+t=	26, s_2 =	1, file =	./SliceData/SliceT
-	slice2: b+l+t=	3, s_2 =	1, file =	./SliceData/SliceB
-	SLICE2: b+l+t=	15, s_2 =	0, file =	./SliceData/Slice2
+#	Slice0: l_0 =	5, s_0 =	0, file =	./SliceData/Slice0,
+#	Slice0: l_0 =	5, s_0 =	1, file =	./SliceData/Slice0b,
+#	Slice1: l_1 =	5, s_1 =	0, file =	./SliceData/Slice1,
+#	Slice1: l_1 =	5, s_1 =	1, file =	./SliceData/Slice1b,
+#	Slice2: b+l+t=	26, s_2 =	1, file =	./SliceData/SliceT
+	slice2: b+l+t=	6, s_2 =	1, file =	./SliceData/SliceC1
+	SLICE2: b+l+t=	6, s_2 =	0, file =	./SliceData/SliceC0
 #
 #-- 20180928 Read by Mcalc.c, Scalc.c, B2 only for FDTD.c --------------------------------------
-	BoundaryCondition: B0 = 1, B1=1, B2 = 1
+	BoundaryCondition: B0 = 1, B1= 1, B2 = 1
 # Bj = -1, 0 or 1 for j = 0,1
 #
 #-- 20180927 Read by Mcalc.c, Scalc.c, FDTD.c --------------------------------------------------
-	ModeP: Xi output = y, Internal precision = D, 1st = B7, 2nd = T1
+	ModeP: Xi output = y, Internal precision = D, 1st = B1, 2nd = B1
 # D (L) means "double" ("long double").
 #
 #-- 20181015 Read by Scalc.c -------------------------------------------------------------------
