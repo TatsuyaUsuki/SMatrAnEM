@@ -1,8 +1,8 @@
 //  Start of Mcalc.h
 #include "header_macro.h"
 #include "constant.h"
-void input_file0(FILE *fp_i0, int BoundC[], char f_prefix[], char p_cross[], char InPrecision[], char Xi_ctrl[]);
-void main_calc(char **argv, const char data_name[BUFSIZE], const char out_name[BUFSIZE], const int BoundC[2], const char InPrecision[BUFSIZE], const char Xi_name[BUFSIZE]);
+void input_file0(FILE *fp_i0, int BoundC[], char f_prefix[], char p_cross[], char InPrecision[], char Xi_ctrl[], double *omega0);
+void main_calc(char **argv, const char data_name[BUFSIZE], const char out_name[BUFSIZE], const int BoundC[2], const char InPrecision[BUFSIZE], const char Xi_name[BUFSIZE], const double omega0);
 //  End of Mcalc.h
 //======================================================================
 //   main ---- input_file0, main_calc             
@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 	if(argc != 2) {	fprintf(stderr,"error: number of files \n");	exit(EXIT_FAILURE);}
 	else if(strncmp(argv[1], "-v", 2) == 0 || strcmp(argv[1], "--version") == 0 ) {
 		fprintf(stderr,"The '%s' creates wave-modes.\n", argv[0]);
-		fprintf(stderr,"Version 19.08.20 is compiled at %s on %s.\n C-version   : %ld\n", __TIME__, __DATE__, __STDC_VERSION__);
+		fprintf(stderr,"Version 20.07.07 is compiled at %s on %s.\n C-version   : %ld\n", __TIME__, __DATE__, __STDC_VERSION__);
 		fprintf(stderr," Source code : '%s'\n Author      : Tatsuya Usuki\n URL         : http://www.smatran.org\n", __FILE__);
 		fprintf(stderr," References  : 'Wave scattering in frequency domain' as 'Formulation.pdf' on Aug 14, 2019.\n");
 		fprintf(stderr,"There is NO warranty.\n");
@@ -27,7 +27,8 @@ int main(int argc, char **argv)
 	
 	char f_prefix[BUFSIZE], p_cross[BUFSIZE*2], InPrecision[BUFSIZE], Xi_ctrl[BUFSIZE];
 	int BoundC[2];
-	input_file0(fp_i0, BoundC, f_prefix, p_cross, InPrecision, Xi_ctrl);
+	double omega0;
+	input_file0(fp_i0, BoundC, f_prefix, p_cross, InPrecision, Xi_ctrl, &omega0);//revised on 20200707
 	if(fclose(fp_i0) != 0) {	fprintf(stderr,"fclose error after input_file!\n");	exit(EXIT_FAILURE);}
 //-------  end reading fundamental parameters  -------
 	for(int i1 = 0 ; i1 < 2 ; i1++){
@@ -48,23 +49,31 @@ int main(int argc, char **argv)
 				snprintf(Xi_name,sizeof(Xi_name),"%s_tXi.dat", f_prefix);
 			}
 		}
-		main_calc(argv, data_name, out_name, BoundC, InPrecision, Xi_name);
+		main_calc(argv, data_name, out_name, BoundC, InPrecision, Xi_name, omega0);//revised on 20200707
 	}
 	end_1st:;
 }
 //======================================================================
-//  input_file0 ---- rm_space, rm_comma                                 
-//                           Last updated on Oct 09, 2018   
+//  input_file0 ---- rm_space, ScaleUnit, rm_comma                      
+//                           Last updated on Jul 07, 2020  
 //======================================================================
 void rm_space( char *A );
 void rm_comma( char *A );
-void input_file0(FILE *fp_i0, int BoundC[2], char f_prefix[], char p_cross[], char InPrecision[], char Xi_ctrl[])
+double ScaleUnit(char x[]);
+void input_file0(FILE *fp_i0, int BoundC[2], char f_prefix[], char p_cross[], char InPrecision[], char Xi_ctrl[], double *omega0)
 {
-	char buf[BUFSIZE];	// buffer for fgets
-	int j_count = -3;
+	char buf[BUFSIZE], A[BUFSIZE];	// buffer for fgets
+	double lambda, inv_k0;
+	int j_count = -5;
 	while(fgets(buf, sizeof( buf ), fp_i0) != NULL && j_count < 0) { 
 		rm_space(buf);
-		if(strncmp(buf, "Prefix", 6) == 0 && sscanf(buf,"%*[^=] %*[=] %s", f_prefix) == 1){
+		if(strncmp(buf, "inv_k0", 6) == 0 && sscanf(buf,"%*[^=] %*[=] %lf %s", &inv_k0, A) == 2){//revised on 20200707
+			inv_k0 *= ScaleUnit(A);
+			j_count++;//-4
+		}else if(strncmp(buf, "MediumPara", 10) == 0 && sscanf(buf,"%*[^=] %*[=] %lf %s", &lambda, A) == 2){//revised on 20200707
+			lambda *= ScaleUnit(A);
+			j_count++;//-3
+		}else if(strncmp(buf, "Prefix", 6) == 0 && sscanf(buf,"%*[^=] %*[=] %s", f_prefix) == 1){
 			rm_comma(f_prefix);
 			j_count++;//-2
 		}else if(strncmp(buf, "BoundaryCondition", 17) == 0 && sscanf(buf,"%*[^=] %*[=] %d %*[^=] %*[=] %d", &BoundC[0], &BoundC[1]) == 2) {
@@ -77,7 +86,42 @@ void input_file0(FILE *fp_i0, int BoundC[2], char f_prefix[], char p_cross[], ch
 			j_count++;//0
 		}
 	}
+	*omega0 = (Pi2*inv_k0)/(lambda);//revised on 20200707
 	if(j_count != 0) {	fprintf(stderr,"3 control commands cannot be read in input_file1!");	exit(EXIT_FAILURE);}
+}
+//======================================================================
+//  double ScaleUnit                                                    
+//                                       Last updated on Feb 26, 2017.  
+//======================================================================
+//#include <string.h>
+double ScaleUnit(char x[])
+{
+	double scale;
+	if (strncmp(x, "cm", 2) == 0) {
+		scale = 1e-2;
+	} else if (strncmp(x, "deg", 3) == 0) {
+		scale = Pi/180.;
+	} else if (strncmp(x, "km", 2) == 0) {
+		scale = 1e3;
+	} else if (strncmp(x, "m", 1) == 0) {
+		if (strncmp(x, "mm", 2) == 0) {
+			scale = 1e-3;// order of m, mm, micron is important!
+		} else if (strncmp(x, "micron", 6) == 0) {
+			scale = 1e-6;// order of m, mm, micron is important!
+		} else {
+			scale = 1e-0;// order of m, mm, micron is important!
+		}
+	} else if (strncmp(x, "nm", 2) == 0) {
+		scale = 1e-9;
+	} else if (strncmp(x, "um", 2) == 0) {
+		scale = 1e-6;
+	} else if (strncmp(x, "rad", 3) == 0) {
+		scale = 1.;
+	} else {
+		fprintf(stderr,"ScaleUnit error!  x = %s\n", x);
+		exit(1);
+	}
+	return(scale);
 }
 //======================================================================
 //  This program removes spaces of head in characters,
@@ -117,14 +161,14 @@ void rm_comma(char *A)
 }
 //======================================================================
 //  main_calc ---- read_para, set_V, calc_Xi                  
-//                                       Last updated on Oct 08, 2018.  
+//                                       Last updated on Jul 07, 2020.  
 //======================================================================
 void calc_Xi(const int L[2], const int BoundC[2], const char InPrecision[BUFSIZE], 
 	const double omega, long count_num[2], double *norm, double *Xi_Norm, 
 	double complex theta_m[6*L[0]*L[1]], double complex Xi_m[4*L[0]*L[1]*4*L[0]*L[1]]);
 long set_V(FILE *fp_i, const int L[2], const double omega, double complex Vcomp[]);
 void read_para(FILE *fp_i, const char data_name[BUFSIZE], char comment[BUFSIZE], double *du_2, double *k_0, int L[2], double *omega);
-void main_calc(char **argv, const char data_name[BUFSIZE], const char out_name[BUFSIZE], const int BoundC[2], const char InPrecision[BUFSIZE], const char Xi_name[BUFSIZE])
+void main_calc(char **argv, const char data_name[BUFSIZE], const char out_name[BUFSIZE], const int BoundC[2], const char InPrecision[BUFSIZE], const char Xi_name[BUFSIZE], const double omega0)
 {
 	time_t timer_s, timer_f;
 	timer_s = time(0);
@@ -135,6 +179,7 @@ void main_calc(char **argv, const char data_name[BUFSIZE], const char out_name[B
 	int L[2];
 	double du_2, k_0, omega;
 	read_para(fp_i, data_name, comment, &du_2, &k_0, L, &omega);
+	if(fabs(1. - omega0/omega) > 1.e-10){fprintf(stderr,"omega = %.10e != omega0 = %.10e\n", omega, omega0); omega = omega0;}//revised on 20200707
 	double norm, Xi_Norm;
 	long count_num[2];//{comp_count, num_real};
 	double complex *theta_m = calloc(6*L[0]*L[1],sizeof(double complex));//Note that region from &theta_m[4*L[0]*L[1]] to &theta_m[6*L[0]*L[1]-1] is used as working region.

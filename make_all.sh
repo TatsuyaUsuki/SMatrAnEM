@@ -11,6 +11,7 @@ cd ./CorrFactor  && make && cd ../
 cd ./StrSlice  && make && cd ../
 cd ./ModeCalc  && make && cd ../
 cd ./ModeCalc2  && make && cd ../
+cd ./ModeSlice  && make && cd ../
 cd ./PMLset  && make && cd ../
 cd ./Smat  && make && cd ../
 cd ./FDTDcalc  && make && cd ../
