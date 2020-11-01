@@ -3,6 +3,7 @@
 #ifndef HEADERS_MACROS_H
 #define HEADERS_MACROS_H
 
+#include <float.h>
 #include <tgmath.h>
 #include <stdio.h>
 #include <stdlib.h>

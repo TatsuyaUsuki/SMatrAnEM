@@ -269,67 +269,80 @@ void output_file(char **argv, const char Yee[], const int N_table, const double 
 	}
 	SAFEFREE(ep_cell);	SAFEFREE(mu_cell);
 }
-int normal_media(const double complex cell[]);
+void normal_media(const double complex cell[], double normal_sqrV[3]);
 double complex media_ave2000(const double complex cell[], const int direction, const double env_para[5])
 {
 	double complex media_out = 0.;
-	if(direction == normal_media(cell) && env_para[4] >= 0.){
-		double complex cmedia = media_ave(&cell[6*6*6], &env_para[2]);
-		media_out = conj(cmedia)/(creal(cmedia)*creal(cmedia)+cimag(cmedia)*cimag(cmedia));
+	double sqrV[3];//revised on 20200930
+	normal_media(cell, sqrV);//revised on 20200930
+	if(env_para[4] >= 0.){//revised on 20200930
+		if(sqrV[direction] > 1. || sqrV[direction] < 0. || direction > 2 || direction <0){
+			fprintf(stderr,"Error @ media_ave2000! sqrV[%d] = %.5e\n", direction, sqrV[direction]);	exit(1);
+		}else{
+			double complex media1, media2;
+			{
+				media1 = media_ave(cell, &env_para[2]);
+				double complex cmedia_inv= media_ave(&cell[6*6*6], &env_para[2]);
+				media2 = conj(cmedia_inv)/(creal(cmedia_inv)*creal(cmedia_inv)+cimag(cmedia_inv)*cimag(cmedia_inv));
+			}
+			media_out = (1.-sqrV[direction])*media1 + sqrV[direction]*media2;
+		}
 	}else{
 		media_out = media_ave(cell, &env_para[2]);
 	}
+	/*if(fabs(cimag(media_out)) != 0.){
+		fprintf(stderr,"Error @ media_ave2000! media_out = (%.5e, %.5e)\n", creal(media_out), cimag(media_out));	exit(1);
+	}*/
 	return(media_out);
 }
-int normal_media(const double complex cell[])
+void normal_media(const double complex cell[], double normal_sqrV[3])//revised on 20200930
 {
-	double dummy[2] = {0.,0.};
-	double complex ave = media_ave(cell, dummy);
-	double mu_u  =  0.;
-	for(int ls_u = 2 ; ls_u <= 3 ; ls_u++){
-		double complex sub_sum = 0.;
-		for(int ls_w = 2 ; ls_w <= 3 ; ls_w++){
-			for(int ls_v = 2 ; ls_v <= 3 ; ls_v++){
-				sub_sum += cell[ls_u+6*ls_v+36*ls_w];
+	{
+		double mu_u  =  0.;
+		for(int ls_u = 2 ; ls_u <= 3 ; ls_u++){
+			double complex sub_sum = 0.;
+			for(int ls_w = 2 ; ls_w <= 3 ; ls_w++){
+				for(int ls_v = 2 ; ls_v <= 3 ; ls_v++){
+					sub_sum += cell[ls_u+6*ls_v+36*ls_w];
+				}
 			}
+			sub_sum *= 0.25;
+			mu_u += ((double complex) ((2*ls_u)-5))*sub_sum;
 		}
-		sub_sum *= 0.25;
-		mu_u += fabs(sub_sum - ave);
-	}
-	
-	double mu_v  =  0.;
-	for(int ls_v = 2 ; ls_v <= 3 ; ls_v++){
-		double complex sub_sum = 0.;
-		for(int ls_w = 2 ; ls_w <= 3 ; ls_w++){
-			for(int ls_u = 2 ; ls_u <= 3 ; ls_u++){
-				sub_sum += cell[ls_u+6*ls_v+36*ls_w];
-			}
-		}
-		sub_sum *= 0.25;
-		mu_v += fabs(sub_sum - ave);
-	}
-	
-	double mu_w  =  0.;
-	for(int ls_w = 2 ; ls_w <= 3 ; ls_w++){
-		double complex sub_sum = 0.;
+		normal_sqrV[0] = creal(mu_u)*creal(mu_u) + cimag(mu_u)*cimag(mu_u);
+	}{
+		double mu_v  =  0.;
 		for(int ls_v = 2 ; ls_v <= 3 ; ls_v++){
-			for(int ls_u = 2 ; ls_u <= 3 ; ls_u++){
-				sub_sum += cell[ls_u+6*ls_v+36*ls_w];
+			double complex sub_sum = 0.;
+			for(int ls_w = 2 ; ls_w <= 3 ; ls_w++){
+				for(int ls_u = 2 ; ls_u <= 3 ; ls_u++){
+					sub_sum += cell[ls_u+6*ls_v+36*ls_w];
+				}
 			}
+			sub_sum *= 0.25;
+			mu_v += ((double complex) ((2*ls_v)-5))*sub_sum;
 		}
-		sub_sum *= 0.25;
-		mu_w += fabs(sub_sum - ave);
+		normal_sqrV[1] = creal(mu_v)*creal(mu_v) + cimag(mu_v)*cimag(mu_v);
+	}{
+		double mu_w  =  0.;
+		for(int ls_w = 2 ; ls_w <= 3 ; ls_w++){
+			double complex sub_sum = 0.;
+			for(int ls_v = 2 ; ls_v <= 3 ; ls_v++){
+				for(int ls_u = 2 ; ls_u <= 3 ; ls_u++){
+					sub_sum += cell[ls_u+6*ls_v+36*ls_w];
+				}
+			}
+			sub_sum *= 0.25;
+			mu_w += ((double complex) ((2*ls_w)-5))*sub_sum;
+		}
+		normal_sqrV[2] = creal(mu_w)*creal(mu_w) + cimag(mu_w)*cimag(mu_w);
+	}{
+		double norm2 = (normal_sqrV[0] + normal_sqrV[1] + normal_sqrV[2]);
+		if(norm2 > DBL_EPSILON){
+			norm2 = 1./norm2;
+			for(int j = 0 ; j < 3 ; j++){normal_sqrV[j] *= norm2;}
+		}
 	}
-	int normal_V = 3;
-	if(mu_u > mu_v && mu_u > mu_w){
-		normal_V = 0;
-	}else if(mu_v > mu_w && mu_v > mu_u){
-		normal_V = 1;
-	}else if(mu_w > mu_u && mu_w > mu_v){
-		normal_V = 2;
-	}
-	
-	return(normal_V);
 }
 double complex media_ave(const double complex cell[], const double DeformationFactor[2])
 {

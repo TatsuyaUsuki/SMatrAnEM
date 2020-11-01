@@ -15,9 +15,9 @@ int main(int argc, char **argv)
 	if(argc != 2) {fprintf(stderr,"error: number of files \n");	exit(EXIT_FAILURE);}
 	else if(strncmp(argv[1], "-v", 2) == 0 || strcmp(argv[1], "--version") == 0 ) {
 		fprintf(stderr,"The '%s' creates correction factor.\n", argv[0]);
-		fprintf(stderr,"Version 19.09.19 is compiled at %s on %s.\n C-version   : %ld\n", __TIME__, __DATE__, __STDC_VERSION__);
-		fprintf(stderr," Source code : '%s'\n Author      : Tatsuya Usuki\n URL         : http://www.smatran.org\n", __FILE__);
-		fprintf(stderr," References  : Equations (6.6) and (H.3) in 'Formulation.pdf' on Aug 25, 2019\n");
+		fprintf(stderr,"Version 20.11.01 is compiled at %s on %s.\n C-version   : %ld\n", __TIME__, __DATE__, __STDC_VERSION__);
+		fprintf(stderr," Source code : '%s'\n Author      : Tatsuya Usuki\n URL         : https://www.smatran.org\n", __FILE__);
+		fprintf(stderr," References  : Equations (6.6) and (H.3) in 'Formulation.pdf' on Dec. 01, 2020\n");
 		fprintf(stderr,"There is NO warranty.\n");
 		exit(EXIT_SUCCESS);//normal end
 	}
@@ -203,7 +203,7 @@ void matdata_file(const char f_prefix[], const char add_name[], const int Ltot, 
 	}else{fprintf(stderr,"istep = %d error!\n", istep);	exit(EXIT_FAILURE);}
 }
 //======================================================================
-//  set_eta ---- set_epmu, set_DX2         Last updated on Sep 03, 2019 
+//  set_eta ---- set_epmu, set_DX2         Last updated on Oct 30, 2020 
 //======================================================================
 void set_epmu(const int L[4], const int l0, const int l1, const double complex cmed[], const double r_ep[], const double r_mu[], double epmu[6]);
 void set_DX2(const int L[4], const int l0, const int l1, const double fx[], const double r_ep[], const double r_mu[], double DX2[]);
@@ -216,7 +216,7 @@ void set_eta(const int L[4], const double omega, const double complex cmed[], co
 			double epmu[6];
 			set_epmu(L, l0, l1, cmed, r_ep, r_mu, epmu);
 			for(int j6 = 0 ; j6 < 6; j6++){
-				eta[j6 + 3*2*l0 + 3*2*L[0]*l1] = (omega*omega/120.)*epmu[j6]*DX2[j6];//	eta[j6 + 3*2*l0 + 3*2*L[0]*l1] = DX2[j6];
+				eta[j6 + 3*2*l0 + 3*2*L[0]*l1] = (omega*omega/80.)*epmu[j6]*DX2[j6];//	eta[j6 + 3*2*l0 + 3*2*L[0]*l1] = DX2[j6];
 			}
 		}
 	}
@@ -265,7 +265,7 @@ void set_epmu(const int L[4], const int l0, const int l1, const double complex c
 	}
 }
 //======================================================================
-//  set_DX2                                Last updated on Sep 04, 2019 
+//  set_DX2                                Last updated on Dec 01, 2020 
 //======================================================================
 void set_DX2(const int L[4], const int l0, const int l1, const double fx[], const double r_ep[], const double r_mu[], double DX2[6])
 {
@@ -273,42 +273,42 @@ void set_DX2(const int L[4], const int l0, const int l1, const double fx[], cons
 	int l1m = (l1 - 1 + L[1])%L[1];
 	int l0p = (l0 + 1 + L[0])%L[0];
 	int l0m = (l0 - 1 + L[0])%L[0];
-	double D0, D1, D2; // fx[jdata<3][j2<2][l0<L[0]][l1<L[1]]
+	double fx0, fx1, fx2; // fx[jdata<3][j2<2][l0<L[0]][l1<L[1]]; fxj = D_j+1 * D_j+2 / D_j
 	//xi - l = (1/2, 0 , 0 )
-	D0 = fx[0 + 3*0 + 3*2*l0 + 3*2*L[0]*l1];//(1/2, 0 , 0 ) ; f00(1/2, 0 , 0 )[0][0][l0][l1];
-	D1 = 0.5*(fx[0 + 3*1 + 3*2*l0 + 3*2*L[0]*l1] + r_ep[( 0+2 ) + 2*2*l0 + 2*2*L[0]*l1]); //(1/2, 0 ,1/2) + (1/2, 0 ,-1/2) ; f11(1/2, 0 ,1/2)[0][1][l0][l1];
-	D2 = 0.5*(fx[2 + 3*0 + 3*2*l0 + 3*2*L[0]*l1] +   fx[2 + 3*0 + 3*2*l0 + 3*2*L[0]*l1m]);//(1/2,1/2, 0 ) + (1/2,-1/2, 0 ) ; f22(1/2,1/2, 0 )[2][0][l0][l1]; 
-	DX2[0] = D1*D2 + D2*D0 + D0*D1;
+	fx0 = fx[0 + 3*0 + 3*2*l0 + 3*2*L[0]*l1];//(1/2, 0 , 0 ) ; fx00(1/2, 0 , 0 )[0][0][l0][l1];
+	fx1 = 0.5*(fx[0 + 3*1 + 3*2*l0 + 3*2*L[0]*l1] + r_ep[( 0+2 ) + 2*2*l0 + 2*2*L[0]*l1]); //(1/2, 0 ,1/2) + (1/2, 0 ,-1/2) ; fx11(1/2, 0 ,1/2)[0][1][l0][l1];
+	fx2 = 0.5*(fx[2 + 3*0 + 3*2*l0 + 3*2*L[0]*l1] +   fx[2 + 3*0 + 3*2*l0 + 3*2*L[0]*l1m]);//(1/2,1/2, 0 ) + (1/2,-1/2, 0 ) ; fx22(1/2,1/2, 0 )[2][0][l0][l1]; 
+	DX2[0] = fx2*fx0 + fx0*fx1;//D1*D1 + D2*D2;
 	
 	//xi - l = ( 0 ,1/2, 0 )
-	D1 = fx[1 + 3*0 + 3*2*l0 + 3*2*L[0]*l1];//( 0 ,1/2, 0 ) ; f11( 0 ,1/2, 0 )[1][0][l0][l1];
-	D2 = 0.5*(fx[2 + 3*0 + 3*2*l0 + 3*2*L[0]*l1] +   fx[2 + 3*0 + 3*2*l0m + 3*2*L[0]*l1]);//(1/2,1/2, 0 ) + (-1/2,1/2, 0 ) ; f22(1/2,1/2, 0 )[2][0][l0][l1];
-	D0 = 0.5*(fx[1 + 3*1 + 3*2*l0 + 3*2*L[0]*l1] + r_ep[( 1+2 ) + 2*2*l0 + 2*2*L[0]*l1]); //( 0 ,1/2,1/2) + ( 0 ,1/2,-1/2) ; f00( 0 ,1/2,1/2)[1][1][l0][l1];
-	DX2[1] = D1*D2 + D2*D0 + D0*D1;
+	fx1 = fx[1 + 3*0 + 3*2*l0 + 3*2*L[0]*l1];//( 0 ,1/2, 0 ) ; fx11( 0 ,1/2, 0 )[1][0][l0][l1];
+	fx2 = 0.5*(fx[2 + 3*0 + 3*2*l0 + 3*2*L[0]*l1] +   fx[2 + 3*0 + 3*2*l0m + 3*2*L[0]*l1]);//(1/2,1/2, 0 ) + (-1/2,1/2, 0 ) ; fx22(1/2,1/2, 0 )[2][0][l0][l1];
+	fx0 = 0.5*(fx[1 + 3*1 + 3*2*l0 + 3*2*L[0]*l1] + r_ep[( 1+2 ) + 2*2*l0 + 2*2*L[0]*l1]); //( 0 ,1/2,1/2) + ( 0 ,1/2,-1/2) ; fx00( 0 ,1/2,1/2)[1][1][l0][l1];
+	DX2[1] = fx0*fx1 + fx1*fx2;//D2*D2 + D0*D0;
 	
 	//xi - l = (1/2,1/2, 0 )
-	D2 = fx[2 + 3*0 + 3*2*l0 + 3*2*L[0]*l1];//(1/2,1/2, 0 ) ; f22(1/2,1/2, 0 )[2][0][l0][l1];
-	D0 = 0.5*(fx[0 + 3*0 + 3*2*l0 + 3*2*L[0]*l1] + fx[0 + 3*0 + 3*2*l0 + 3*2*L[0]*l1p]); //(1/2, 0 , 0 ) + (1/2, 1 , 0 ) ; f00(1/2, 0 , 0 )[0][0][l0][l1];
-	D1 = 0.5*(fx[1 + 3*0 + 3*2*l0 + 3*2*L[0]*l1] + fx[1 + 3*0 + 3*2*l0p + 3*2*L[0]*l1]); //( 0 ,1/2, 0 ) + ( 1 ,1/2, 0 ) ; f11( 0 ,1/2, 0 )[1][0][l0][l1];
-	DX2[2] = D1*D2 + D2*D0 + D0*D1;
+	fx2 = fx[2 + 3*0 + 3*2*l0 + 3*2*L[0]*l1];//(1/2,1/2, 0 ) ; fx22(1/2,1/2, 0 )[2][0][l0][l1];
+	fx0 = 0.5*(fx[0 + 3*0 + 3*2*l0 + 3*2*L[0]*l1] + fx[0 + 3*0 + 3*2*l0 + 3*2*L[0]*l1p]); //(1/2, 0 , 0 ) + (1/2, 1 , 0 ) ; fx00(1/2, 0 , 0 )[0][0][l0][l1];
+	fx1 = 0.5*(fx[1 + 3*0 + 3*2*l0 + 3*2*L[0]*l1] + fx[1 + 3*0 + 3*2*l0p + 3*2*L[0]*l1]); //( 0 ,1/2, 0 ) + ( 1 ,1/2, 0 ) ; fx11( 0 ,1/2, 0 )[1][0][l0][l1];
+	DX2[2] = fx1*fx2 + fx2*fx0;//D0*D0 + D1*D1;
 	
-	//xi - l = (1/2, 0 ,1/2) ; f11(1/2, 0 ,1/2)[0][1][l0][l1];
-	D1 = fx[0 + 3*1 + 3*2*l0 + 3*2*L[0]*l1];//(1/2, 0 ,1/2) ; f11(1/2, 0 ,1/2)[0][1][l0][l1];
-	D2 = 0.5*(fx[2 + 3*1 + 3*2*l0p + 3*2*L[0]*l1] +  fx[2 + 3*1 + 3*2*l0 + 3*2*L[0]*l1]);//( 1 , 0 ,1/2) + ( 0 , 0 ,1/2) ; f22( 0 , 0 ,1/2)[2][1][l0][l1];
-	D0 = 0.5*(fx[0 + 3*0 + 3*2*l0 + 3*2*L[0]*l1] + r_mu[( 0+2 ) + 2*2*l0 + 2*2*L[0]*l1]);//(1/2, 0 , 0 ) + (1/2, 0 , 1 ) ; f00(1/2, 0 , 0 )[0][0][l0][l1];
-	DX2[3] = D1*D2 + D2*D0 + D0*D1;
+	//xi - l = (1/2, 0 ,1/2) ; fx11(1/2, 0 ,1/2)[0][1][l0][l1];
+	fx1 = fx[0 + 3*1 + 3*2*l0 + 3*2*L[0]*l1];//(1/2, 0 ,1/2) ; fx11(1/2, 0 ,1/2)[0][1][l0][l1];
+	fx2 = 0.5*(fx[2 + 3*1 + 3*2*l0p + 3*2*L[0]*l1] +  fx[2 + 3*1 + 3*2*l0 + 3*2*L[0]*l1]);//( 1 , 0 ,1/2) + ( 0 , 0 ,1/2) ; fx22( 0 , 0 ,1/2)[2][1][l0][l1];
+	fx0 = 0.5*(fx[0 + 3*0 + 3*2*l0 + 3*2*L[0]*l1] + r_mu[( 0+2 ) + 2*2*l0 + 2*2*L[0]*l1]);//(1/2, 0 , 0 ) + (1/2, 0 , 1 ) ; fx00(1/2, 0 , 0 )[0][0][l0][l1];
+	DX2[3] = fx2*fx0 + fx0*fx1;//D1*D1 + D2*D2;
 	
 	//xi - l = ( 0 ,1/2,1/2)
-	D0 = fx[1 + 3*1 + 3*2*l0 + 3*2*L[0]*l1];//( 0 ,1/2,1/2) ; f00( 0 ,1/2,1/2)[1][1][l0][l1];
-	D1 = 0.5*(fx[1 + 3*0 + 3*2*l0 + 3*2*L[0]*l1] + r_mu[( 1+2 ) + 2*2*l0 + 2*2*L[0]*l1]);//( 0 ,1/2, 0 ) + ( 0 ,1/2, 1 ) ; f11( 0 ,1/2, 0 )[1][0][l0][l1];
-	D2 = 0.5*(fx[2 + 3*1 + 3*2*l0 + 3*2*L[0]*l1p] +  fx[2 + 3*1 + 3*2*l0 + 3*2*L[0]*l1]);//( 0 , 1 ,1/2) + ( 0 , 0 ,1/2) ; f22( 0 , 0 ,1/2)[2][1][l0][l1];
-	DX2[4] = D1*D2 + D2*D0 + D0*D1;
+	fx0 = fx[1 + 3*1 + 3*2*l0 + 3*2*L[0]*l1];//( 0 ,1/2,1/2) ; fx00( 0 ,1/2,1/2)[1][1][l0][l1];
+	fx1 = 0.5*(fx[1 + 3*0 + 3*2*l0 + 3*2*L[0]*l1] + r_mu[( 1+2 ) + 2*2*l0 + 2*2*L[0]*l1]);//( 0 ,1/2, 0 ) + ( 0 ,1/2, 1 ) ; fx11( 0 ,1/2, 0 )[1][0][l0][l1];
+	fx2 = 0.5*(fx[2 + 3*1 + 3*2*l0 + 3*2*L[0]*l1p] +  fx[2 + 3*1 + 3*2*l0 + 3*2*L[0]*l1]);//( 0 , 1 ,1/2) + ( 0 , 0 ,1/2) ; fx22( 0 , 0 ,1/2)[2][1][l0][l1];
+	DX2[4] = fx0*fx1 + fx1*fx2;//D2*D2 + D0*D0;
 	
 	//xi - l = ( 0 , 0 ,1/2)
-	D2 = fx[2 + 3*1 + 3*2*l0 + 3*2*L[0]*l1];//( 0 , 0 ,1/2) ; f22( 0 , 0 ,1/2)[2][1][l0][l1];
-	D1 = 0.5*(fx[0 + 3*1 + 3*2*l0 + 3*2*L[0]*l1] + fx[0 + 3*1 + 3*2*l0m + 3*2*L[0]*l1]);//(1/2, 0 ,1/2) + (-1/2, 0 ,1/2) ; f11(1/2, 0 ,1/2)[0][1][l0][l1];
-	D0 = 0.5*(fx[1 + 3*1 + 3*2*l0 + 3*2*L[0]*l1] + fx[1 + 3*1 + 3*2*l0 + 3*2*L[0]*l1m]);//( 0 ,1/2,1/2) + ( 0 ,-1/2,1/2) ; f00( 0 ,1/2,1/2)[1][1][l0][l1];
-	DX2[5] = D1*D2 + D2*D0 + D0*D1;
+	fx2 = fx[2 + 3*1 + 3*2*l0 + 3*2*L[0]*l1];//( 0 , 0 ,1/2) ; fx22( 0 , 0 ,1/2)[2][1][l0][l1];
+	fx1 = 0.5*(fx[0 + 3*1 + 3*2*l0 + 3*2*L[0]*l1] + fx[0 + 3*1 + 3*2*l0m + 3*2*L[0]*l1]);//(1/2, 0 ,1/2) + (-1/2, 0 ,1/2) ; fx11(1/2, 0 ,1/2)[0][1][l0][l1];
+	fx0 = 0.5*(fx[1 + 3*1 + 3*2*l0 + 3*2*L[0]*l1] + fx[1 + 3*1 + 3*2*l0 + 3*2*L[0]*l1m]);//( 0 ,1/2,1/2) + ( 0 ,-1/2,1/2) ; fx00( 0 ,1/2,1/2)[1][1][l0][l1];
+	DX2[5] = fx1*fx2 + fx2*fx0;//D0*D0 + D1*D1;
 }
 //======================================================================
 //  input_filename ---- rm_space, rm_comma                                 
