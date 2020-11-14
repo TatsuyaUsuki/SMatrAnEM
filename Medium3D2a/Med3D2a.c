@@ -21,10 +21,9 @@ int main(int argc, char **argv)
 		exit(1);
 	}else if(strncmp(argv[1], "-v", 2) == 0 || strcmp(argv[1], "--version") == 0 ) {
 		fprintf(stderr,"The '%s' creates permititivity averaging in quadruple Yee's cell.\n", argv[0]);
-		fprintf(stderr,"Version 20.09.26 is compiled at %s on %s.\n C-version   : %ld\n", __TIME__, __DATE__, __STDC_VERSION__);
+		fprintf(stderr,"Version 20.11.06 is compiled at %s on %s.\n C-version   : %ld\n", __TIME__, __DATE__, __STDC_VERSION__);
 		fprintf(stderr," Source code : '%s'\n Author      : Tatsuya Usuki\n URL         : http://www.smatran.org\n", __FILE__);
-		fprintf(stderr," References  : 'Wave scattering in frequency domain' as 'Formulation.pdf' on May 20, 2018;\n");
-		fprintf(stderr,"                 Section 8.2 in 'Formulation for SMatrAn' as 'manual.pdf' at Jan 16, 2017.\n");
+		fprintf(stderr," References  : 'Wave scattering in frequency domain' as 'Formulation.pdf' on Nov 01, 2020;\n");
 		fprintf(stderr,"There is NO warranty.\n");
 		exit(0);//normal end
 	}
@@ -273,9 +272,9 @@ void normal_media(const double complex cell[], double normal_sqrV[3]);
 double complex media_ave2000(const double complex cell[], const int direction, const double env_para[5])
 {
 	double complex media_out = 0.;
-	double sqrV[3];//revised on 20200930
-	normal_media(cell, sqrV);//revised on 20200930
 	if(env_para[4] >= 0.){//revised on 20200930
+		double sqrV[3];//revised on 20201105
+		normal_media(cell, sqrV);//revised on 20201105
 		if(sqrV[direction] > 1. || sqrV[direction] < 0. || direction > 2 || direction <0){
 			fprintf(stderr,"Error @ media_ave2000! sqrV[%d] = %.5e\n", direction, sqrV[direction]);	exit(1);
 		}else{
@@ -290,9 +289,6 @@ double complex media_ave2000(const double complex cell[], const int direction, c
 	}else{
 		media_out = media_ave(cell, &env_para[2]);
 	}
-	/*if(fabs(cimag(media_out)) != 0.){
-		fprintf(stderr,"Error @ media_ave2000! media_out = (%.5e, %.5e)\n", creal(media_out), cimag(media_out));	exit(1);
-	}*/
 	return(media_out);
 }
 void normal_media(const double complex cell[], double normal_sqrV[3])//revised on 20200930
@@ -374,8 +370,6 @@ double complex media_ave(const double complex cell[], const double DeformationFa
 			mu_u2 += cell[ls_u+6*ls_v+36*0]+cell[ls_u+6*ls_v+36*5];
 		}
 	}
-//	mu_u += mu_u1 + DeformationFactor*(mu_u1 - mu_u2);
-//	mu_u += mu_u1 + DeformationFactor*(mu_u*3 - mu_u2);
 	mu_u += DeformationFactor[0]*mu_u1 + DeformationFactor[1]*mu_u2;
 	mu_u *= (0.125/(1.+ 3.*(DeformationFactor[0] + DeformationFactor[1])));
 	return(mu_u);
