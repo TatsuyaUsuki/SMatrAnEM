@@ -6,6 +6,7 @@ cd ./OuterRegion  && make && cd ../
 cd ./Structure  && make && cd ../
 cd ./Medium3D  && make && cd ../
 cd ./Medium3D2a  && make && cd ../
+cd ./Medium3DSi  && make && cd ../
 cd ./MixedData  && make && cd ../
 cd ./CorrFactor  && make && cd ../
 cd ./StrSlice  && make && cd ../
