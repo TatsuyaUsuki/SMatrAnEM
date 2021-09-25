@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 	if(argc != 2) {	fprintf(stderr,"error: number of files \n");	exit(EXIT_FAILURE);}
 	else if(strncmp(argv[1], "-v", 2) == 0 || strcmp(argv[1], "--version") == 0 ) {
 		fprintf(stderr,"The '%s' creates wave-modes with high precision.\n", argv[0]);
-		fprintf(stderr,"Version 20.07.14 is compiled at %s on %s.\n C-version   : %ld\n", __TIME__, __DATE__, __STDC_VERSION__);
+		fprintf(stderr,"Version 21.08.12 is compiled at %s on %s.\n C-version   : %ld\n", __TIME__, __DATE__, __STDC_VERSION__);
 		fprintf(stderr," Source code : '%s'\n Author      : Tatsuya Usuki\n URL         : http://www.smatran.org\n", __FILE__);
 		fprintf(stderr," References  : 'Wave scattering in frequency domain' as 'Formulation.pdf' on Aug 14, 2019.\n");
 		fprintf(stderr,"There is NO warranty.\n");
@@ -411,7 +411,7 @@ double checkXi(const long N, const long num_real, const double complex theta_m[2
 	return(norm);
 }
 //======================================================================
-//  degeneXi ---- normXi, makePsi        Last updated on Aug 20, 2019.  
+//  degeneXi ---- normXi, makePsi        Last updated on Aug 08, 2021.  
 //======================================================================
 void normXi(const long N, const long num_real, const long icolumn, double complex Xi_m[2*N*2*N]);
 void makePsi(const long N, const long num_real, const long mode0, const double complex theta_m[2*N], const double complex Xi_m[2*N*2*N], double complex Psi[2*N*2*N]);
@@ -420,37 +420,51 @@ void degeneXi(const long N, const long num_real, const double complex theta_m[2*
 	double complex *Psi = &CWork[0];
 	long N2 = 2*N;
 	for(long j = 0 ; j < N-1 ; j++){
-		makePsi(N, num_real, j, theta_m, Xi_m, Psi);
-		{
-			double complex sum_jj0; sum_jj0 = 0.;
-			double complex sum_jjN; sum_jjN = 0.;
-			for(long k = 0 ; k < N2 ; k++){sum_jj0 += conj(Psi[k+N2*j])*Xi_m[k+N2*j];	sum_jjN += conj(Psi[k+N2*(j+N)])*Xi_m[k+N2*(j+N)];}
-			sum_jj0 -= 1.;
-			sum_jjN -= 1.;
-			if(fabs(sum_jj0) > 0.01 || fabs(sum_jjN) > 0.01){	fprintf(stderr,"Normalization error in degeneXi!: S[%ld]=%.5e, S[%ld]=%.5e\n",j,fabs(sum_jj0),j+N,fabs(sum_jjN));	exit(EXIT_FAILURE);}
-		}
 		for(long i = j+1 ; i < N ; i++){
-			double complex sum_ji0; sum_ji0 = 0.;
-			double complex sum_jiN; sum_jiN = 0.;
-			for(long k = 0 ; k < N2 ; k++){
-				sum_ji0 += conj(Psi[k+N2*j])*Xi_m[k+N2*i];
-				sum_jiN += conj(Psi[k+N2*(j+N)])*Xi_m[k+N2*(i+N)];
-			}
-			if(fabs((theta_m[j]-theta_m[i])/(theta_m[j]+theta_m[i])) < sqrt((double) N2)*DBL_EPSILON){
-				fprintf(stderr,"Accidental degeneracy: |(theta_m[%ld]-theta_m[%ld])/(theta_m[%ld]+theta_m[%ld])| = %.5e,", j, i, j, i, fabs((theta_m[j]-theta_m[i])/(theta_m[j]+theta_m[i])));
-				fprintf(stderr," and |(tilde Xi[%ld])^+ Xi[%ld]| = %.5e --> zero\n", j, i, fabs(sum_ji0));
+			if(fabs((theta_m[j]-theta_m[i])/(theta_m[j]+theta_m[i])) < FLT_EPSILON){
+//			if(fabs((theta_m[j]-theta_m[i])/(theta_m[j]+theta_m[i])) < sqrt((double) N2)*DBL_EPSILON){
+				//sum_ij = <i|j>, sum_ji = <j|i> for i > j.
+				//|i_mod> = |i> - sum_ji*|j>.
+				// <i_mod|i_mod> = (<i| - conj(sum_ji)*<j|)(|i> - sum_ji*|j>) = 1 - |sum_ji|^2 - sum_ji*sum_ij + |sum_ji|^2 = 1 - sum_ji*sum_ij.
+				double complex sum_ij0; sum_ij0 = 0.;
+				double complex sum_ijN; sum_ijN = 0.;
+				makePsi(N, num_real, i, theta_m, Xi_m, Psi);
 				for(long k = 0 ; k < N2 ; k++){
-					Xi_m[k+N2*i] -= sum_ji0*Xi_m[k+N2*j];
-					Xi_m[k+N2*(i+N)] -= sum_jiN*Xi_m[k+N2*(j+N)];
+					sum_ij0 += conj(Psi[k+N2*i])*Xi_m[k+N2*j];
+					sum_ijN += conj(Psi[k+N2*(i+N)])*Xi_m[k+N2*(j+N)];
 				}
-				normXi(N, num_real, i, Xi_m);
-				/*sum_ji0 = 0.;
-				sum_jiN = 0.;
+				double complex sum_ji0; sum_ji0 = 0.;
+				double complex sum_jiN; sum_jiN = 0.;
+				makePsi(N, num_real, j, theta_m, Xi_m, Psi);
 				for(long k = 0 ; k < N2 ; k++){
 					sum_ji0 += conj(Psi[k+N2*j])*Xi_m[k+N2*i];
 					sum_jiN += conj(Psi[k+N2*(j+N)])*Xi_m[k+N2*(i+N)];
 				}
-				fprintf(stderr," |Psi^+ Xi_m| = %.5e(f), %.5e(b)\n", fabs(sum_ji0), fabs(sum_jiN));*/
+				double complex a0, b0;
+				{
+					double nor0 = 1./sqrt(fabs(1. - sum_ji0*sum_ij0));
+					a0 = nor0 + 0.*I;
+					b0 = -a0 * sum_ji0;
+				}
+				double complex aN, bN;
+				{
+					double norN= 1./sqrt(fabs(1. - sum_jiN*sum_ijN));
+					aN = norN + 0.*I;
+					bN = -aN * sum_jiN;
+				}
+				for(long k = 0 ; k < N2 ; k++){
+					Xi_m[k+N2*i] = a0*Xi_m[k+N2*i] + b0*Xi_m[k+N2*j];
+					Xi_m[k+N2*(i+N)] = aN*Xi_m[k+N2*(i+N)] + bN*Xi_m[k+N2*(j+N)];
+				}
+				normXi(N, num_real, i, Xi_m);
+				double complex check_ji0; check_ji0 = 0.;
+				double complex check_jiN; check_jiN = 0.;
+				for(long k = 0 ; k < N2 ; k++){
+					check_ji0 += conj(Psi[k+N2*j])*Xi_m[k+N2*i];
+					check_jiN += conj(Psi[k+N2*(j+N)])*Xi_m[k+N2*(i+N)];
+				}
+				fprintf(stderr,"Accidental degeneracy: |(theta_m[%ld]-theta_m[%ld])/(theta_m[%ld]+theta_m[%ld])| = %.5e,", j, i, j, i, fabs((theta_m[j]-theta_m[i])/(theta_m[j]+theta_m[i])));
+				fprintf(stderr," and |(tilde Xi[%ld])^+ Xi[%ld]| = %.5e --> %.5e\n", j, i, fabs(sum_ji0), fabs(check_ji0));
 			}
 		}
 	}
@@ -489,7 +503,7 @@ void normXi(const long N, const long num_real, const long icolumn, double comple
 				normZ += conj(Xi_m[irow+N + 2*N*(icolumn+fb*N)]) * Xi_m[irow + 2*N*(icolumn+fb*N)];
 			}
 			if(fabs(cimag(normZ)) > DBL_EPSILON) {fprintf(stderr,"Warning of imaginary flow in normXi!: normZ = (%.5e,%.5e) at mode%ld\n", creal(normZ),cimag(normZ),icolumn+fb*N);}//revised on 20181110
-			if((0.5 - fb)*creal(normZ) < 0.) {	fprintf(stderr,"flow direction error in normXi!\n");	exit(EXIT_FAILURE);}
+			if((0.5 - fb)*creal(normZ) < 0.) {	fprintf(stderr,"flow direction error in normXi! creal(normZ)=%.5e, icolumn/num_real=%ld/%ld, fb=%ld\n", creal(normZ), icolumn, num_real, fb);	exit(EXIT_FAILURE);}//revised on 20200810
 			double normR = 1./sqrt(fabs(creal(normZ)));
 			for(long irow = 0 ; irow < 2*N ; irow++){
 				Xi_m[irow + 2*N*(icolumn+fb*N)] *= normR;
@@ -510,20 +524,17 @@ void normXi(const long N, const long num_real, const long icolumn, double comple
 	}else{	fprintf(stderr,"icolumn error in normXi!\n");	exit(EXIT_FAILURE);	}
 }
 //======================================================================
-//  sortXi ---- sort_cpair                Last updated on Nov 12, 2018.  
+//  sortXi ---- sort_cpair                Last updated on Aug 12, 2021.  
 //======================================================================
 void sort_cpair(const long N, const long i, const long j, double complex theta_m[2*N], double complex Xi_m[2*N*2*N]);
 void sortXi(const long N, const long num_real, double complex theta_m[2*N], double complex Xi_m[2*N*2*N])
 {
 	for(long icolumn = num_real ; icolumn < N-1 ; icolumn++){
-		if(creal(theta_m[icolumn+N]) != 0. && cimag(theta_m[icolumn+N]) != 0.){
+		if(fabs(creal(theta_m[icolumn+N])) >  FLT_EPSILON && fabs(creal(theta_m[icolumn]+theta_m[icolumn+N])) < FLT_EPSILON){
 			for(long isearch = icolumn+1 ; isearch < N ; isearch++){
-//				if(-conj(theta_m[icolumn+N]) == theta_m[isearch+N]){//if(fabs((theta_m[isearch+N]+conj(theta_m[icolumn+N]))/theta_m[isearch+N]) <= ERROR_MIN){//revised on 20181011
-				if((pow(creal(theta_m[isearch+N]+theta_m[icolumn+N]),2) 
-					+ pow(cimag(theta_m[isearch+N]-theta_m[icolumn+N]),2))
-					/(pow(creal(theta_m[isearch+N]),2)+pow(cimag(theta_m[isearch+N]),2)) <= DBL_EPSILON){//revised on 20181112
+				if(fabs(creal(theta_m[isearch+N]-theta_m[icolumn])) <  FLT_EPSILON
+				&& fabs(cimag(theta_m[isearch+N]+theta_m[icolumn])) < FLT_EPSILON){
 					sort_cpair(N, icolumn+N, isearch+N, theta_m, Xi_m);
-					icolumn = isearch;
 					goto theta_conj;
 				}
 			}
@@ -531,6 +542,50 @@ void sortXi(const long N, const long num_real, double complex theta_m[2*N], doub
 			theta_conj:;
 		}
 	}
+	//------- sort theta_m added on 20210818 -------
+	for(long icolumn = 0 ; icolumn < num_real-1 ; icolumn++){
+		for(long isearch = icolumn+1 ; isearch < num_real ; isearch++){
+			if(  creal(theta_m[isearch]) > creal(theta_m[icolumn]) + FLT_EPSILON){
+				sort_cpair(N, icolumn, isearch, theta_m, Xi_m);
+				sort_cpair(N, icolumn+N, isearch+N, theta_m, Xi_m);
+			}
+		}
+	}
+	for(long icolumn = num_real ; icolumn < N-1 ; icolumn++){
+		for(long isearch = icolumn+1 ; isearch < N ; isearch++){
+			if( cimag(theta_m[isearch]) + FLT_EPSILON < cimag(theta_m[icolumn]) ){
+				sort_cpair(N, icolumn, isearch, theta_m, Xi_m);
+				sort_cpair(N, icolumn+N, isearch+N, theta_m, Xi_m);
+			}
+		}
+	}
+	//-------     End of sort theta_m     -------
+	//------- check theta_m added on 20210816 -------
+	for(long icolumn = 0 ; icolumn < num_real-1 ; icolumn++){
+		if(  creal(theta_m[icolumn+1]) > creal(theta_m[icolumn]) + FLT_EPSILON){
+			fprintf(stderr,"theta_m[%ld] = (%.5e,%.5e), ", icolumn, creal(theta_m[icolumn]), cimag(theta_m[icolumn]));
+			fprintf(stderr,"theta_m[%ld] = (%.5e,%.5e)\n", icolumn+1, creal(theta_m[icolumn+1]), cimag(theta_m[icolumn+1]));	exit(EXIT_FAILURE);
+		}
+	}
+	for(long icolumn = 0 ; icolumn < num_real ; icolumn++){
+		if( fabs(cimag(theta_m[icolumn])) > DBL_EPSILON || fabs(creal(theta_m[icolumn+N]) + creal(theta_m[icolumn])) > FLT_EPSILON){
+			fprintf(stderr,"theta_m[%ld] = (%.5e,%.5e), ", icolumn, creal(theta_m[icolumn]), cimag(theta_m[icolumn]));
+			fprintf(stderr,"theta_m[%ld] = (%.5e,%.5e)\n", icolumn+N, creal(theta_m[icolumn+N]), cimag(theta_m[icolumn+N]));	exit(EXIT_FAILURE);
+		}
+	}
+	for(long icolumn = num_real ; icolumn < N-1 ; icolumn++){
+		if( cimag(theta_m[icolumn+1]) + FLT_EPSILON < cimag(theta_m[icolumn]) ){
+			fprintf(stderr,"theta_m[%ld] = (%.5e,%.5e), ", icolumn, creal(theta_m[icolumn]), cimag(theta_m[icolumn]));
+			fprintf(stderr,"theta_m[%ld] = (%.5e,%.5e)\n", icolumn+1, creal(theta_m[icolumn+1]), cimag(theta_m[icolumn+1]));	exit(EXIT_FAILURE);
+		}
+	}
+	for(long icolumn = num_real ; icolumn < N ; icolumn++){
+		if( cimag(theta_m[icolumn]) < DBL_EPSILON || fabs(theta_m[icolumn]-conj(theta_m[icolumn+N])) > FLT_EPSILON){
+			fprintf(stderr,"theta_m[%ld] = (%.5e,%.5e), ", icolumn, creal(theta_m[icolumn]), cimag(theta_m[icolumn]));
+			fprintf(stderr,"theta_m[%ld] = (%.5e,%.5e)\n", icolumn+N, creal(theta_m[icolumn+N]), cimag(theta_m[icolumn+N]));	exit(EXIT_FAILURE);
+		}
+	}
+	//-------     End of check theta_m     -------
 }
 void sort_cpair(const long N, const long i, const long j, double complex theta_m[2*N], double complex Xi_m[2*N*2*N])
 {
@@ -720,14 +775,14 @@ long sortSin(const int L[2], double complex eiSin[2*L[0]*L[1]], double complex e
 	return(count_real);
 }
 //======================================================================
-//  makeSin                              Last updated on Oct 04, 2018.  
+//  makeSin                              Last updated on Aug. 10, 2021.  
 //======================================================================
 void makeSin(const int L[2], const double complex eiSin2[2*L[0]*L[1]], double complex eiSin[2*L[0]*L[1]])
 {
 	for(long j = 0 ; j < 2*L[0]*L[1] ; j++){
 		double complex z = sqrt(eiSin2[j]);
 		if(creal(z) < 0.){	fprintf(stderr,"sqrt error in Ecalc!\n");	exit(EXIT_FAILURE);}
-		if(cimag(z) < 0.){z = -z;}
+		if(cimag(z) < -FLT_EPSILON*fabs(creal(z))){z = -z;}//revised on 20210810	Old: if(cimag(z) < 0.){z = -z;}
 		eiSin[j] = z;
 	}
 }

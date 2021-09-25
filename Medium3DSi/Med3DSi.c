@@ -21,7 +21,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}else if(strncmp(argv[1], "-v", 2) == 0 || strcmp(argv[1], "--version") == 0 ) {
 		fprintf(stderr,"The '%s' creates permititivity averaging in quadruple Yee's cell.\n", argv[0]);
-		fprintf(stderr,"Version 21.01.24 is compiled at %s on %s.\n C-version   : %ld\n", __TIME__, __DATE__, __STDC_VERSION__);
+		fprintf(stderr,"Version 21.07.17 is compiled at %s on %s.\n C-version   : %ld\n", __TIME__, __DATE__, __STDC_VERSION__);
 		fprintf(stderr," Source code : '%s'\n Author      : Tatsuya Usuki\n URL         : http://www.smatran.org\n", __FILE__);
 		fprintf(stderr," References  : 'Wave scattering in frequency domain' as 'Formulation.pdf' on Nov 01, 2020;\n");
 		fprintf(stderr,"There is NO warranty.\n");
@@ -152,12 +152,12 @@ void rm_comma(char *A)
 void input_data_file0(const char Yee[], int L[5]);
 void input_data_file(const char Yee[], const int n_w, const int L[5], 
 			const double complex ep_omega[], const double complex mu_omega[], double complex ep_cell[8*L[0]*L[1]*2], 
-			double complex mu_cell[8*L[0]*L[1]*2], char input_name[], const int ave_sw);
+			double complex mu_cell[8*L[0]*L[1]*2], char input_name[], const int ave_sw, const double P_tuning);
 void get_file_info(const char input_name[], char xi_file[], char str_file[], double head_u2[4]);
 void matdata_file(const char f_prefix[], const char add_name[], const int Ltot, const int Lout, const int istep, char data_name[]);
 void muep_cell2cell(double complex cell[], const double complex mu_cell[], const int L_u, const int L_v, const int x_shift, const int y_shift, const int z_shift, const int L[2], const int factor_no, const int ave_sw);
-double complex media_ave2000(const double complex cell[], const int direction, const int sum_rad2, const double dSi[], const int ave_sw);
-void gen_f(const char factor_file[], int *factor_no, int *ave_sw);
+double complex media_ave2000(const double complex cell[], const int direction, const int sum_rad2, const double dSi[], const int ave_sw, const double P_tuning);
+void gen_f(const char factor_file[], int *factor_no, int *ave_sw, double *P_tuning);
 void gen_dSi(const char factor_file[], const int sum_rad, double dSi[]);
 void output_file(char **argv, const char Yee[], const int N_table, const double complex ep_omega[N_table], const double complex mu_omega[N_table], const char MediumTable[], const double env_para[2], const char factor_file[])
 {
@@ -171,20 +171,21 @@ void output_file(char **argv, const char Yee[], const int N_table, const double 
 	}
 	fprintf(stderr,"From a data-file, L = %d, M = %d, N_bottom + N + N_top = %d, N_med = %d, CellNum = %d\n", L[0], L[1], L[2], L[3], L[4]);
 	int factor_no, ave_sw;
-	gen_f(factor_file, &factor_no, &ave_sw);
+	double P_tuning = 1.;
+	gen_f(factor_file, &factor_no, &ave_sw, &P_tuning);
 	int sum_rad2 = 2*(2*factor_no + 1);//	int sum_rad = 2*factor_no + 1; 
 	{	fprintf(stderr,"sum_rad = 2*factor_no + 1 = %d, ave_sw = %d\n", 2*factor_no + 1, ave_sw);}
-	double *dSi = malloc(sum_rad2*sizeof(double));//	double *dSi = calloc(2*sum_rad,sizeof(double));
+	double *dSi = malloc(2*sum_rad2*sizeof(double));//revised on 20210710 for differential of weighting factor, old: double *dSi = malloc(sum_rad2*sizeof(double));
 	gen_dSi(factor_file, 2*factor_no + 1, dSi);
 
 	int shift16L0L1 = 8*L[0]*L[1];//8*L[0]*L[1]*2;
-	if(ave_sw != 0){	shift16L0L1 *= 2;}
+	if(ave_sw != 0 && ave_sw != 10){	shift16L0L1 *= 2;}//revised on 20210425
 	double complex *ep_cell = malloc(2*(factor_no+1)*shift16L0L1*sizeof(double complex));
 	double complex *mu_cell = malloc(2*(factor_no+1)*shift16L0L1*sizeof(double complex));
 	char input_name[BUFSIZE];//revised on 20180718
 	for(int jj = 0 ; jj < (factor_no + 1); jj++){
 		int iw = jj;	if(iw > L[2] - 1){	iw = L[2] - 1;}
-		input_data_file(Yee, iw, L, ep_omega, mu_omega, &ep_cell[(jj + factor_no + 1)*shift16L0L1], &mu_cell[(jj + factor_no + 1)*shift16L0L1], input_name, ave_sw);
+		input_data_file(Yee, iw, L, ep_omega, mu_omega, &ep_cell[(jj + factor_no + 1)*shift16L0L1], &mu_cell[(jj + factor_no + 1)*shift16L0L1], input_name, ave_sw, P_tuning);
 	}
 
 	for(int jj = 0 ; jj < (factor_no + 1); jj++){
@@ -194,7 +195,7 @@ void output_file(char **argv, const char Yee[], const int N_table, const double 
 		}
 	}
 	double complex *cell;
-	if(ave_sw == 0){
+	if(ave_sw == 0 || ave_sw == 10){//revised on 20210425
 		cell = (double complex *)malloc((sum_rad2)*(sum_rad2)*(sum_rad2)*sizeof(double complex));
 	}else{
 		cell = (double complex *)malloc(2*(sum_rad2)*(sum_rad2)*(sum_rad2)*sizeof(double complex));
@@ -211,7 +212,7 @@ void output_file(char **argv, const char Yee[], const int N_table, const double 
 		{
 			int read_jw = jw0 + factor_no;
 			if(jw0 + factor_no >= L[2]){	read_jw = L[2]-1;}
-			input_data_file(Yee, read_jw, L, ep_omega, mu_omega, &ep_cell[(2*factor_no + 1)*shift16L0L1], &mu_cell[(2*factor_no + 1)*shift16L0L1], input_name, ave_sw);
+			input_data_file(Yee, read_jw, L, ep_omega, mu_omega, &ep_cell[(2*factor_no + 1)*shift16L0L1], &mu_cell[(2*factor_no + 1)*shift16L0L1], input_name, ave_sw, P_tuning);
 		}
 		{
 			char xi_file[BUFSIZE], str_file[BUFSIZE]; double head_u2[4];//revised on 20180801
@@ -229,13 +230,13 @@ void output_file(char **argv, const char Yee[], const int N_table, const double 
 				{
 					fprintf(fp_o,"%d %d 0 ", l_u, l_v);
 					muep_cell2cell(cell, mu_cell, l_u, l_v, 2, 1, 1, L, factor_no, ave_sw);//mu_u: x_shift = 2, y_shift = 1, z_shift = 1
-					double complex mu_u = media_ave2000(cell,0, sum_rad2, dSi, ave_sw);
+					double complex mu_u = media_ave2000(cell,0, sum_rad2, dSi, ave_sw, P_tuning);
 //
 					muep_cell2cell(cell, mu_cell, l_u, l_v, 1, 2, 1, L, factor_no, ave_sw);//mu_v: x_shift = 1, y_shift = 2, z_shift = 1
-					double complex mu_v = media_ave2000(cell,1, sum_rad2, dSi, ave_sw);
+					double complex mu_v = media_ave2000(cell,1, sum_rad2, dSi, ave_sw, P_tuning);
 //
 					muep_cell2cell(cell, ep_cell, l_u, l_v, 2, 2, 1, L, factor_no, ave_sw);//ep_w: x_shift = 2, y_shift = 2, z_shift = 1
-					double complex ep_w = media_ave2000(cell,2, sum_rad2, dSi, ave_sw);
+					double complex ep_w = media_ave2000(cell,2, sum_rad2, dSi, ave_sw, P_tuning);
 //
 					fprintf(fp_o,"%.20E %.20E %.20E %.20E %.20E %.20E\n",
 						creal(mu_u),cimag(mu_v),creal(mu_v),cimag(mu_v),creal(ep_w),cimag(ep_w));
@@ -244,13 +245,13 @@ void output_file(char **argv, const char Yee[], const int N_table, const double 
 				{
 					fprintf(fp_o,"%d %d 1 ", l_u, l_v);
 					muep_cell2cell(cell, ep_cell, l_u, l_v, 2, 1, 2, L, factor_no, ave_sw);//ep_v: x_shift = 2, y_shift = 1, z_shift = 2
-					double complex ep_v = media_ave2000(cell,1, sum_rad2, dSi, ave_sw);
+					double complex ep_v = media_ave2000(cell,1, sum_rad2, dSi, ave_sw, P_tuning);
 //
 					muep_cell2cell(cell, ep_cell, l_u, l_v, 1, 2, 2, L, factor_no, ave_sw);//ep_u: x_shift = 1, y_shift = 2, z_shift = 2
-					double complex ep_u = media_ave2000(cell,0, sum_rad2, dSi, ave_sw);
+					double complex ep_u = media_ave2000(cell,0, sum_rad2, dSi, ave_sw, P_tuning);
 //
 					muep_cell2cell(cell, mu_cell, l_u, l_v, 1, 1, 2, L, factor_no, ave_sw);//mu_w: x_shift = 1, y_shift = 1, z_shift = 2
-					double complex mu_w = media_ave2000(cell,2, sum_rad2, dSi, ave_sw);
+					double complex mu_w = media_ave2000(cell,2, sum_rad2, dSi, ave_sw, P_tuning);
 //
 					fprintf(fp_o,"%.20E %.20E %.20E %.20E %.20E %.20E\n",
 						creal(ep_v),cimag(ep_v),creal(ep_u),cimag(ep_u),creal(mu_w),cimag(mu_w));
@@ -271,14 +272,23 @@ void output_file(char **argv, const char Yee[], const int N_table, const double 
 }
 //======================================================================
 //  media_ave2000 ---- normal_media, media_ave  
-//                                       Last updated on Dec 28, 2020.  
+//                                       Last updated on Jul 17, 2021.  
 //======================================================================
-void normal_media(const int sum_rad2, const double complex cell[], double normal_sqrV[3]);
+void normal_media(const int sum_rad2, const double complex cell[], const double dSi[], double normal_sqrV[3]);
 double complex media_ave(const double complex cell[], const int sum_rad, const double dSi[]);
-double complex media_ave2000(const double complex cell[], const int direction, const int sum_rad2, const double dSi[], const int ave_sw)
+double complex media_ave2000(const double complex cell[], const int direction, const int sum_rad2, const double dSi[], const int ave_sw, const double P_tuning)
 {
 	double complex media_out = 0.;
-	if(ave_sw == 4){//Case 4: geometric mean along normal vector only in each sub-cell
+	if(ave_sw == 10){//Case 10: sqrt mean
+		media_out = media_ave(cell, sum_rad2, dSi);
+		media_out = pow(media_out, 1./P_tuning);
+	/*}else if(ave_sw == 5){//Case 5: geometric mean and harmonic mean added on 20210424
+			double complex media1 = media_ave(cell, sum_rad2, dSi);
+			double complex cmedia_inv = media_ave(&cell[sum_rad2*sum_rad2*sum_rad2], sum_rad2, dSi);
+			double complex media3 = conj(cmedia_inv)/(creal(cmedia_inv)*creal(cmedia_inv)+cimag(cmedia_inv)*cimag(cmedia_inv));
+			double eta = -0.03;
+			media_out = (1.-eta)*media1 + eta*media3;
+	}else if(ave_sw == 4){//Case 4: geometric mean along normal vector only in each sub-cell
 			double complex media2;
 			{
 				double complex media1 = media_ave(cell, sum_rad2, dSi);
@@ -310,10 +320,25 @@ double complex media_ave2000(const double complex cell[], const int direction, c
 				if(cos(carg(media1+media3)) < 0.) {media2 = -media2;}
 			}
 			media_out = (1.-sqrV[direction])*media1 + sqrV[direction]*media2;
+		}*/
+	}else if(ave_sw == 2){//Case 2: new harmonic mean along normal vector for global cells
+		double sqrV[3];
+		normal_media(sum_rad2, cell, dSi, sqrV);
+		if(sqrV[direction] > 1. || sqrV[direction] < 0. || direction > 2 || direction <0){
+			fprintf(stderr,"Error @ media_ave2000! sqrV[%d] = %.5e\n", direction, sqrV[direction]);	exit(1);
+		}else{
+			double complex media1inv, media2inv;
+			{
+				double complex media1 = media_ave(cell, sum_rad2, dSi);
+				media1inv = conj(media1)/(creal(media1)*creal(media1)+cimag(media1)*cimag(media1));
+				media2inv = media_ave(&cell[sum_rad2*sum_rad2*sum_rad2], sum_rad2, dSi);
+			}//Eq.(1) of 200610_Farjadpour	https://doi.org/10.1364/OL.31.002972
+			double complex media_inv = (1.-sqrV[direction])*media1inv + sqrV[direction]*media2inv;
+			media_out = conj(media_inv)/(creal(media_inv)*creal(media_inv)+cimag(media_inv)*cimag(media_inv));
 		}
 	}else if(ave_sw == 1){//Case 1: harmonic mean along normal vector for global cells
 		double sqrV[3];
-		normal_media(sum_rad2, cell, sqrV);
+		normal_media(sum_rad2, cell, dSi, sqrV);
 		if(sqrV[direction] > 1. || sqrV[direction] < 0. || direction > 2 || direction <0){
 			fprintf(stderr,"Error @ media_ave2000! sqrV[%d] = %.5e\n", direction, sqrV[direction]);	exit(1);
 		}else{
@@ -329,7 +354,7 @@ double complex media_ave2000(const double complex cell[], const int direction, c
 		media_out = media_ave(cell, sum_rad2, dSi);
 	}else if(ave_sw == -1){//Case -1: harmonic mean along normal vector only in each sub-cell added on 20201225
 		double sqrV[3];
-		normal_media(sum_rad2, cell, sqrV);
+		normal_media(sum_rad2, cell, dSi, sqrV);
 		if(sqrV[direction] > 1. || sqrV[direction] < 0. || direction > 2 || direction <0){
 			fprintf(stderr,"Error @ media_ave2000! sqrV[%d] = %.5e\n", direction, sqrV[direction]);	exit(1);
 		}else{
@@ -342,7 +367,7 @@ double complex media_ave2000(const double complex cell[], const int direction, c
 		}
 	}else if(ave_sw == -2){//Case -2: geometric mean along normal vector only in each sub-cell added on 20201225
 		double sqrV[3];
-		normal_media(sum_rad2, cell, sqrV);
+		normal_media(sum_rad2, cell, dSi, sqrV);
 		if(sqrV[direction] > 1. || sqrV[direction] < 0. || direction > 2 || direction <0){
 			fprintf(stderr,"Error @ media_ave2000! sqrV[%d] = %.5e\n", direction, sqrV[direction]);	exit(1);
 		}else{
@@ -363,7 +388,8 @@ double complex media_ave2000(const double complex cell[], const int direction, c
 				media1 = media_ave(cell, sum_rad2, dSi);
 				media2 = media_ave(&cell[sum_rad2*sum_rad2*sum_rad2], sum_rad2, dSi);
 			}
-			media_out = (0.9)*media1 + (0.1)*media2;
+//			media_out = 0.6*media1 + 0.4*media2;//checked on 20210424
+			media_out = ((2.)*media1 + (1.)*media2)/3.;
 	}else if(ave_sw == -5){//Case -5: geometric mean
 			double complex media1, media2;
 			{
@@ -377,6 +403,9 @@ double complex media_ave2000(const double complex cell[], const int direction, c
 	}
 	return(media_out);
 }
+//======================================================================
+//  media_ave                            Last updated on Jul 11, 2021   
+//======================================================================
 double complex media_ave(const double complex cell[], const int sum_rad2, const double dSi[])
 {
 	double complex mu_u  =  0.;
@@ -389,47 +418,27 @@ double complex media_ave(const double complex cell[], const int sum_rad2, const 
 	}
 	return(mu_u);
 }
-void normal_media(const int sum_rad2, const double complex cell[], double normal_sqrV[3])
-{
-	int sum_rad = sum_rad2/2;
+//======================================================================
+//  normal_media                         Last updated on Jul 11, 2021   
+//======================================================================
+void normal_media(const int sum_rad2, const double complex cell[], const double dSi[], double normal_sqrV[3])
+{//revised on 20210710
+//	int sum_rad = sum_rad2/2;
 	{
-		double mu_u  =  0.;
-		for(int ls_u = sum_rad - 1 ; ls_u <= sum_rad ; ls_u++){
-			double complex sub_sum = 0.;
-			for(int ls_w = sum_rad - 1 ; ls_w <= sum_rad ; ls_w++){
-				for(int ls_v = sum_rad - 1 ; ls_v <= sum_rad ; ls_v++){
-					sub_sum += cell[ls_u+sum_rad2*ls_v+sum_rad2*sum_rad2*ls_w];
+		double complex mu_u  =  0.;
+		double complex mu_v  =  0.;
+		double complex mu_w  =  0.;
+		for(int ls_u = 0 ; ls_u < sum_rad2 ; ls_u++){
+			for(int ls_w = 0 ; ls_w < sum_rad2 ; ls_w++){
+				for(int ls_v = 0 ; ls_v < sum_rad2 ; ls_v++){
+					mu_u += dSi[ls_u +sum_rad2]*dSi[ls_v]*dSi[ls_w]*cell[ls_u+sum_rad2*ls_v+sum_rad2*sum_rad2*ls_w];
+					mu_v += dSi[ls_u]*dSi[ls_v +sum_rad2]*dSi[ls_w]*cell[ls_u+sum_rad2*ls_v+sum_rad2*sum_rad2*ls_w];
+					mu_w += dSi[ls_u]*dSi[ls_v]*dSi[ls_w +sum_rad2]*cell[ls_u+sum_rad2*ls_v+sum_rad2*sum_rad2*ls_w];
 				}
 			}
-			sub_sum *= 0.25;
-			mu_u += ((double complex) ((2*ls_u) - sum_rad2 + 1))*sub_sum;
 		}
 		normal_sqrV[0] = creal(mu_u)*creal(mu_u) + cimag(mu_u)*cimag(mu_u);
-	}{
-		double mu_v  =  0.;
-		for(int ls_v = sum_rad - 1 ; ls_v <= sum_rad ; ls_v++){
-			double complex sub_sum = 0.;
-			for(int ls_w = sum_rad - 1 ; ls_w <= sum_rad ; ls_w++){
-				for(int ls_u = sum_rad - 1 ; ls_u <= sum_rad ; ls_u++){
-					sub_sum += cell[ls_u+sum_rad2*ls_v+sum_rad2*sum_rad2*ls_w];
-				}
-			}
-			sub_sum *= 0.25;
-			mu_v += ((double complex) ((2*ls_v) - sum_rad2 + 1))*sub_sum;
-		}
 		normal_sqrV[1] = creal(mu_v)*creal(mu_v) + cimag(mu_v)*cimag(mu_v);
-	}{
-		double mu_w  =  0.;
-		for(int ls_w = sum_rad - 1 ; ls_w <= sum_rad ; ls_w++){
-			double complex sub_sum = 0.;
-			for(int ls_v = sum_rad - 1 ; ls_v <= sum_rad ; ls_v++){
-				for(int ls_u = sum_rad - 1 ; ls_u <= sum_rad ; ls_u++){
-					sub_sum += cell[ls_u+sum_rad2*ls_v+sum_rad2*sum_rad2*ls_w];
-				}
-			}
-			sub_sum *= 0.25;
-			mu_w += ((double complex) ((2*ls_w) - sum_rad2 + 1))*sub_sum;
-		}
 		normal_sqrV[2] = creal(mu_w)*creal(mu_w) + cimag(mu_w)*cimag(mu_w);
 	}{
 		double norm2 = (normal_sqrV[0] + normal_sqrV[1] + normal_sqrV[2]);
@@ -440,9 +449,9 @@ void normal_media(const int sum_rad2, const double complex cell[], double normal
 	}
 }
 //======================================================================
-//  gen_f                           Last updated on Dec 04, 2020   
+//  gen_f                           Last updated on Apr 28, 2021   
 //======================================================================
-void gen_f(const char factor_file[], int *factor_no, int *ave_sw)
+void gen_f(const char factor_file[], int *factor_no, int *ave_sw, double *P_tuning)
 {
 	FILE *fp_i;
 	fp_i = fopen(factor_file,"r");
@@ -450,7 +459,14 @@ void gen_f(const char factor_file[], int *factor_no, int *ave_sw)
 		fprintf(stderr,"Inport from %s\n", factor_file);
 		char buf[BUFSIZE];
 		while(fgets(buf, sizeof( buf ), fp_i) != NULL) { 
-			if(sscanf(buf,"%*[^=] %*[=] %d %*[^=] %*[=] %d", factor_no, ave_sw) == 2){	goto EndOfSmoothingData;
+			if(sscanf(buf,"%*[^=] %*[=] %d %*[^=] %*[=] %d", factor_no, ave_sw) == 2){
+				if(*ave_sw == 10){//added on 20210428
+					if(sscanf(buf,"%*[^=] %*[=] %*[^=] %*[=]  %*[^=] %*[=] %lf", P_tuning) != 1){
+						fprintf(stderr,"P_tuning error in gen_f\n");	exit(1);
+					}
+					fprintf(stderr,"P_tuning = %.5E\n", *P_tuning);
+				}
+				goto EndOfSmoothingData;
 			}
 		}
 		fprintf(stderr,"Cannot get factor_no and/or ave_sw in gen_f\n");	exit(1);
@@ -459,7 +475,7 @@ void gen_f(const char factor_file[], int *factor_no, int *ave_sw)
 	}else{fprintf(stderr,"No file as %s in gen_f()\n", factor_file);}
 }
 //======================================================================
-//  gen_dSi                         Last updated on Jan 05, 2021   
+//  gen_dSi                         Last updated on Jul 17, 2021   
 //======================================================================
 void gen_dSi(const char factor_file[], const int sum_rad, double dSi[])
 {
@@ -483,7 +499,7 @@ void gen_dSi(const char factor_file[], const int sum_rad, double dSi[])
 			fprintf(stderr,"Warning: Cannot get end point in %s\n",factor_file);//	exit(1);
 			EndOfSmoothingData:;
 			if(fclose(fp_i) != 0) {	fprintf(stderr,"fclose error of %s\n", factor_file);	exit(1);}
-		}else{fprintf(stderr,"No file as %s in gen_dSi()\n", factor_file);}
+		}else{fprintf(stderr,"No file as %s in gen_dSi()\n", factor_file);	exit(1);}
 		
 		//if(sum_rad > 13) {	fprintf(stderr,"sum_rad > 13, sum_rad = %d\n", sum_rad);	exit(1);}
 		for(int jj = 0; jj < sum_rad; jj++){
@@ -503,6 +519,11 @@ void gen_dSi(const char factor_file[], const int sum_rad, double dSi[])
 		double sum = 0.5;
 		for(int jj = 0; jj < sum_rad; jj++){	sum -= dSi[jj];}
 		if(fabs(sum) >  2*sum_rad*DBL_EPSILON) {	fprintf(stderr,"sum != 0., sum = %.20E\n", sum);	exit(1);}
+	}
+	{//added on 20210710 differential of weighting factor
+		dSi[0 +2*sum_rad] = 0.5*(dSi[1] - 0.) ;
+		for(int jj = 1; jj < 2*sum_rad - 1; jj++){	dSi[jj +2*sum_rad] = 0.5*(dSi[jj+1] - dSi[jj-1]);}
+		dSi[2*sum_rad - 1 +2*sum_rad] = 0.5*(0. - dSi[2*sum_rad - 2]) ;
 	}
 }
 //======================================================================
@@ -547,7 +568,7 @@ void muep_cell2cell(double complex cell[], const double complex mu_cell[], const
 				int Ll_u = (L_u + l_u - (factor_no + 1));//(L_u + l_u - 2 + 2*L[0])%L[0];
 				while(Ll_u < 0){	Ll_u += L[0];}
 				Ll_u %= L[0];//Ll_u = Ll_u%L[0];
-				if(ave_sw == 0){
+				if(ave_sw == 0 || ave_sw == 10){//revised on 20210425
 					cell[ls_u+(sum_rad2)*ls_v+(sum_rad2)*(sum_rad2)*ls_w] = mu_cell[s_u+2*s_v+4*s_w + 8*Ll_u + 8*L[0]*Ll_v + 8*L[0]*L[1]*l_w ];
 				}else{
 					cell[ls_u+(sum_rad2)*ls_v+(sum_rad2)*(sum_rad2)*ls_w                                   ] = mu_cell[s_u+2*s_v+4*s_w + 8*Ll_u + 8*L[0]*Ll_v               + 16*L[0]*L[1]*l_w ];
@@ -602,7 +623,7 @@ void get_file_info(const char input_name[], char xi_file[], char str_file[], dou
 //======================================================================
 void input_data_file(const char Yee[], const int n_w, const int L[5], 
 			const double complex ep_omega[], const double complex mu_omega[], double complex ep_cell[8*L[0]*L[1]], 
-			double complex mu_cell[8*L[0]*L[1]], char input_name[], const int ave_sw)
+			double complex mu_cell[8*L[0]*L[1]], char input_name[], const int ave_sw, const double P_tuning)
 {
 	FILE *fp_i;
 	matdata_file(Yee, "", L[2], L[4], n_w, input_name);
@@ -655,7 +676,7 @@ void input_data_file(const char Yee[], const int n_w, const int L[5],
 						if(k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v > 8*L[0]*L[1]-1){fprintf(stderr,"Loop error in input_data_file\n"); exit(1);}
 						ep_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v] = 0.;
 						mu_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v] = 0.;
-						if(ave_sw != 0){
+						if(ave_sw != 0 && ave_sw != 10){//revised on 20210425
 							ep_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v + 8*L[0]*L[1]] = 0.;
 							mu_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v + 8*L[0]*L[1]] = 0.;
 						}
@@ -673,10 +694,15 @@ void input_data_file(const char Yee[], const int n_w, const int L[5],
 							}
 							{
 								double complex ep = ep_omega[j_med];
-								ep_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v] += weight_med*ep;
 								double complex mu = mu_omega[j_med];
-								mu_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v] += weight_med*mu;
-								if(ave_sw != 0){//revised on 20201204
+								if(ave_sw == 10){
+									ep_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v] += weight_med*pow(ep,P_tuning);
+									mu_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v] += weight_med*pow(mu,P_tuning);
+								}else{
+									ep_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v] += weight_med*ep;
+									mu_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v] += weight_med*mu;
+								}
+								if(ave_sw != 0 && ave_sw != 10){//revised on 20210425
 									ep_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v + 8*L[0]*L[1]] += weight_med*conj(ep)/(creal(ep)*creal(ep)+cimag(ep)*cimag(ep));
 									mu_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v + 8*L[0]*L[1]] += weight_med*conj(mu)/(creal(mu)*creal(mu)+cimag(mu)*cimag(mu));
 								}
@@ -689,6 +715,12 @@ void input_data_file(const char Yee[], const int n_w, const int L[5],
 							double complex mu = mu_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v + 8*L[0]*L[1]];
 							mu_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v + 8*L[0]*L[1]] = conj(mu)/(creal(mu)*creal(mu)+cimag(mu)*cimag(mu));
 						}
+						/*if(ave_sw == 10){//added on 20210425. Note that a case of ave_sw = 10 sets sqrt mean for each sub-cell
+							double complex ep = ep_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v];
+							ep_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v] = exp(ep);
+							double complex mu = mu_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v];
+							mu_cell[k_u+2*k_v + 4*k_w + 8*l_u + 8*L[0]*l_v] = exp(mu);
+						}*/
 						if(sum_weight_med != 1.) {
 							fprintf(stderr,"sum_weight_med = %g\n", sum_weight_med);
 							exit(1);

@@ -1,0 +1,68 @@
+Mcalc.c: In function ‘read_para’:
+Mcalc.c:1172:59: warning: ‘%s’ directive output may be truncated writing up to 1023 bytes into a region of size 996 [-Wformat-truncation=]
+ 1172 |   snprintf(comment,BUFSIZE,"# Data file          : ' %s ' %s", data_name, &buf[10]);// https://www.ipa.go.jp/security/awareness/vendor/programmingv1/b06_02.html
+      |   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/stdio.h:867,
+                 from header_macro.h:8,
+                 from Mcalc.c:2:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:67:10: note: ‘__builtin___snprintf_chk’ output 29 or more bytes (assuming 1052) into a destination of size 1024
+   67 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   68 |        __bos (__s), __fmt, __va_arg_pack ());
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Mcalc.c: In function ‘main’:
+Mcalc.c:37:43: warning: ‘_Med’ directive output may be truncated writing 4 bytes into a region of size between 1 and 1024 [-Wformat-truncation=]
+   37 |   snprintf(data_name,sizeof(data_name),"%s_Med%s.dat", f_prefix, &p_cross[i1*BUFSIZE]);// https://www.ipa.go.jp/security/awareness/vendor/programmingv1/b06_02.html
+      |                                           ^~~~
+In file included from /usr/include/stdio.h:867,
+                 from header_macro.h:8,
+                 from Mcalc.c:2:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:67:10: note: ‘__builtin___snprintf_chk’ output 9 or more bytes (assuming 1032) into a destination of size 1024
+   67 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   68 |        __bos (__s), __fmt, __va_arg_pack ());
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Mcalc.c:47:42: warning: ‘_tMode.dat’ directive output may be truncated writing 10 bytes into a region of size between 1 and 1024 [-Wformat-truncation=]
+   47 |    snprintf(out_name,sizeof(out_name),"%s_tMode.dat", f_prefix);
+      |                                          ^~~~~~~~~~
+In file included from /usr/include/stdio.h:867,
+                 from header_macro.h:8,
+                 from Mcalc.c:2:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:67:10: note: ‘__builtin___snprintf_chk’ output between 11 and 1034 bytes into a destination of size 1024
+   67 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   68 |        __bos (__s), __fmt, __va_arg_pack ());
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Mcalc.c:49:41: warning: ‘_tXi.dat’ directive output may be truncated writing 8 bytes into a region of size between 1 and 1024 [-Wformat-truncation=]
+   49 |     snprintf(Xi_name,sizeof(Xi_name),"%s_tXi.dat", f_prefix);
+      |                                         ^~~~~~~~
+In file included from /usr/include/stdio.h:867,
+                 from header_macro.h:8,
+                 from Mcalc.c:2:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:67:10: note: ‘__builtin___snprintf_chk’ output between 9 and 1032 bytes into a destination of size 1024
+   67 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   68 |        __bos (__s), __fmt, __va_arg_pack ());
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Mcalc.c:41:42: warning: ‘_bMode.dat’ directive output may be truncated writing 10 bytes into a region of size between 1 and 1024 [-Wformat-truncation=]
+   41 |    snprintf(out_name,sizeof(out_name),"%s_bMode.dat", f_prefix);
+      |                                          ^~~~~~~~~~
+In file included from /usr/include/stdio.h:867,
+                 from header_macro.h:8,
+                 from Mcalc.c:2:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:67:10: note: ‘__builtin___snprintf_chk’ output between 11 and 1034 bytes into a destination of size 1024
+   67 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   68 |        __bos (__s), __fmt, __va_arg_pack ());
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Mcalc.c:43:41: warning: ‘_bXi.dat’ directive output may be truncated writing 8 bytes into a region of size between 1 and 1024 [-Wformat-truncation=]
+   43 |     snprintf(Xi_name,sizeof(Xi_name),"%s_bXi.dat", f_prefix);
+      |                                         ^~~~~~~~
+In file included from /usr/include/stdio.h:867,
+                 from header_macro.h:8,
+                 from Mcalc.c:2:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:67:10: note: ‘__builtin___snprintf_chk’ output between 9 and 1032 bytes into a destination of size 1024
+   67 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   68 |        __bos (__s), __fmt, __va_arg_pack ());
+      |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
