@@ -592,6 +592,14 @@ void sortXi(const long N, const long num_real, double complex theta_m[2*N], doub
 			}
 		}
 	}
+	for(long icolumn = num_real ; icolumn < N ; icolumn++){//revised on 20211107
+		if(fabs(theta_m[icolumn]-conj(theta_m[icolumn+N])) > FLT_EPSILON){
+			for(long jcolumn = icolumn + 1 ; jcolumn < N ; jcolumn++){
+				if(fabs(theta_m[icolumn]-conj(theta_m[jcolumn+N])) <= FLT_EPSILON){	sort_cpair(N, icolumn+N, jcolumn+N, theta_m, Xi_m);	goto checkconj;}
+			}
+			checkconj:;
+		}
+	}
 	//-------     End of sort theta_m     -------
 	//------- check theta_m added on 20210816 -------
 	for(long icolumn = 0 ; icolumn < num_real-1 ; icolumn++){

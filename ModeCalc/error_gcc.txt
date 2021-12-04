@@ -1,6 +1,6 @@
 Mcalc.c: In function ‘read_para’:
-Mcalc.c:1172:59: warning: ‘%s’ directive output may be truncated writing up to 1023 bytes into a region of size 996 [-Wformat-truncation=]
- 1172 |   snprintf(comment,BUFSIZE,"# Data file          : ' %s ' %s", data_name, &buf[10]);// https://www.ipa.go.jp/security/awareness/vendor/programmingv1/b06_02.html
+Mcalc.c:1180:59: warning: ‘%s’ directive output may be truncated writing up to 1023 bytes into a region of size 996 [-Wformat-truncation=]
+ 1180 |   snprintf(comment,BUFSIZE,"# Data file          : ' %s ' %s", data_name, &buf[10]);// https://www.ipa.go.jp/security/awareness/vendor/programmingv1/b06_02.html
       |   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~
 In file included from /usr/include/stdio.h:867,
                  from header_macro.h:8,
